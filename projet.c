@@ -125,12 +125,6 @@ void menuReservation()
         case 2:
             saisirReservations();
             break;
-        case 3:
-            modifierReservations();
-            break;
-        case 4:
-            supprimerReservations();
-            break;
         case 5:
             chargementReservations();
             break;
@@ -269,21 +263,6 @@ int rechercherReservations(int num_resa_rechercher)
         }
         return resa_trouve;
     }
-}
-
-void supprimerReservations()
-{
-    printf("Fonctionnalité non implémentée pour l'instant.\n");
-    printf("\n");
-}
-
-// Fonction pour gérer le restaurant
-void menuRestaurant()
-{
-    printf("\n****** Gérer le restaurant ******\n");
-    printf("\n");
-    printf("Fonctionnalité non implémentée pour l'instant.\n");
-    printf("\n");
 }
 
 // Fonction pour vérifier si il y a des données à sauvegarder, déclencher par le flag
