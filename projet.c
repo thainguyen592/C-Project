@@ -12,22 +12,6 @@
 #define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
 
-// Déclarations préliminaires des fonctions
-
-void afficherMenuPrincipal();
-void afficherMenuReservation();
-void menuReservation();
-void afficherReservations();
-void saisirReservations();
-void rechercherRservations();
-void sauvegardeReservations();
-void chargementReservations();
-void modifierReservations();
-void menuRestaurant();
-void convMaj(char chaine[]);
-void verifSauvegarde();
-void quitter();
-
 // Types global
 struct client // structure d'un client
 {
@@ -53,6 +37,23 @@ struct reservation // structure d'une réservation
 int nbresa = 0;                         // initialiser le nombre des réservations
 struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
 int a_sauvegarder = 0;                  // flag pour l'alerte à sauvegarder
+
+// Déclarations préliminaires des fonctions
+
+void afficherMenuPrincipal();
+void afficherMenuReservation();
+void menuReservation();
+void afficherReservations();
+void saisirReservations();
+void demanderCritereRecherche();
+void rechercherReservation(struct reservation resa_a_trouver);
+void sauvegardeReservations();
+void chargementReservations();
+void modifierReservations();
+void menuRestaurant();
+void convMaj(char chaine[]);
+void verifSauvegarde();
+void quitter();
 
 // Programme principale
 int main()
@@ -99,9 +100,8 @@ void afficherMenuReservation()
     printf("\n");
     printf("-1- Afficher les réservation        \n");
     printf("-2- Rechercher une réservation      \n");
-    printf("-2- Saisir une nouvelle réservation \n");
-    printf("-3- Modifier une réservation        \n");
-    printf("-4- Supprimer une réservation       \n");
+    printf("-3- Saisir une nouvelle réservation \n");
+    printf("-4- Modifier une réservation        \n");
     printf("-5- Chargement des réservation      \n"); // automatiser lors d'ouverture du programme
     printf("-6- Sauvegarde des réservation      \n"); // automatiser lors d'ouverture du programme
     printf("-0- Revenir au menu précédent       \n");
@@ -124,10 +124,13 @@ void menuReservation()
             afficherReservations();
             break;
         case 2:
-            saisirReservations();
+            demanderCritereRecherche();
             break;
         case 3:
-            rechercherReservations();
+            saisirReservations();
+            break;
+        case 4:
+            modifierReservations();
             break;
         case 5:
             chargementReservations();
@@ -242,11 +245,10 @@ void modifierReservations()
     struct reservation uneresa;
 }
 
-// Fonction pour rechercher une réservation
-void rechercherReservations()
+// Fonction pour demander le critère de recherche au utilisateur
+void demanderCritereRecherche()
 {
-    struct reservation uneresa;
-    int resa_trouve = VAL_INI; // initialiser la variable de recherche
+    struct reservation recherche_resa;
     {
         if (nbresa == 0)
         {
@@ -275,23 +277,23 @@ void rechercherReservations()
                 {
                 case 1:
                     printf("Numéro de réservation à rechercher : ");
-                    scanf("%d", &resa_trouve);
+                    scanf("%d", &recherche_resa.num_r);
                     break;
                 case 2:
                     printf("Numéro de client à rechercher : ");
-                    scanf("%d", &resa_trouve);
+                    scanf("%d", &recherche_resa.num_c);
                     break;
                 case 3:
                     printf("Date d'entrée à rechercher : ");
-                    scanf("%s", uneresa.date_entree);
+                    scanf("%s", recherche_resa.date_entree);
                     break;
                 case 4:
                     printf("Date de sortie à rechercher : ");
-                    scanf("%s", uneresa.date_sortie);
+                    scanf("%s", recherche_resa.date_sortie);
                     break;
                 case 5:
                     printf("Chambre à rechercher : ");
-                    scanf("%d", &resa_trouve);
+                    scanf("%d", &recherche_resa.chambre);
                     break;
                 case 0:
                     break;
@@ -299,19 +301,46 @@ void rechercherReservations()
                     printf(">>> Option invalide. Veuillez réessayer.\n");
                 }
             }
-            
-            // boucle de recherche
-            //     for (int i = 0; i < nbresa; i++)
-            //     {
-            //         uneresa = tabresa[i];
-            //         if (uneresa.num_r == num_resa_rechercher)
-            //         {
-            //             resa_trouve = i;
-            //             break;
-            //         }
-            //     }
-            // }
-            // return resa_trouve;
+            rechercherReservation(recherche_resa);
+        }
+    }
+}
+
+// Fonction pour rechercher une réservation par critère
+void rechercherReservation(struct reservation resa_a_trouver)
+{
+    struct reservation uneresa;
+    int i, j, nbresa_trouve = 0;
+    int idx_resa_trouve[TAILLE_TAB];
+
+    if (nbresa == 0)
+    {
+        printf(">>> Aucune réservation à afficher\n");
+    }
+    else
+    {
+        for (i = 0; i < nbresa; i++)
+        {
+            uneresa = tabresa[i];
+            if (uneresa.num_r == resa_a_trouver.num_r || uneresa.num_c == resa_a_trouver.num_c || strcmp(uneresa.date_entree, resa_a_trouver.date_entree) == 0 || strcmp(uneresa.date_sortie, resa_a_trouver.date_sortie) == 0 || uneresa.chambre == resa_a_trouver.chambre)
+            {
+                idx_resa_trouve[nbresa_trouve] = i;
+                nbresa_trouve++;
+            }
+        }
+        if (nbresa_trouve == 0)
+        {
+            printf(">>> Aucune réservation trouvée\n");
+        }
+        else
+        {
+            printf(">>> %d réservations trouvées\n", nbresa_trouve);
+            printf("%6s %-11s %-11s %7s %5s %8s\n", "N°RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N°CLIENT");
+            for (j = 0; j < nbresa_trouve; j++)
+            {
+                uneresa = tabresa[idx_resa_trouve[j]];
+                printf("%-6d %-11s %-11s %-7d %-5d %-8d\n", uneresa.num_c, uneresa.date_entree, uneresa.date_sortie, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+            }
         }
     }
 }
