@@ -266,40 +266,37 @@ void demanderCritereRecherche()
 
             int rechercher_choix = VAL_INI;
             scanf("%d", &rechercher_choix);
-            while (rechercher_choix < 1 || rechercher_choix > 5)
+            while (rechercher_choix < 0 || rechercher_choix > 5)
             {
                 printf(">>> Option invalide. Veuillez réessayer.\n");
                 scanf("%d", &rechercher_choix);
             }
-            while (rechercher_choix != 0)
+            switch (rechercher_choix)
             {
-                switch (rechercher_choix)
-                {
-                case 1:
-                    printf("Numéro de réservation à rechercher : ");
-                    scanf("%d", &recherche_resa.num_r);
-                    break;
-                case 2:
-                    printf("Numéro de client à rechercher : ");
-                    scanf("%d", &recherche_resa.num_c);
-                    break;
-                case 3:
-                    printf("Date d'entrée à rechercher : ");
-                    scanf("%s", recherche_resa.date_entree);
-                    break;
-                case 4:
-                    printf("Date de sortie à rechercher : ");
-                    scanf("%s", recherche_resa.date_sortie);
-                    break;
-                case 5:
-                    printf("Chambre à rechercher : ");
-                    scanf("%d", &recherche_resa.chambre);
-                    break;
-                case 0:
-                    break;
-                default:
-                    printf(">>> Option invalide. Veuillez réessayer.\n");
-                }
+            case 1:
+                printf("Numéro de réservation à rechercher : ");
+                scanf("%d", &recherche_resa.num_r);
+                break;
+            case 2:
+                printf("Numéro de client à rechercher : ");
+                scanf("%d", &recherche_resa.num_c);
+                break;
+            case 3:
+                printf("Date d'entrée à rechercher : ");
+                scanf("%s", recherche_resa.date_entree);
+                break;
+            case 4:
+                printf("Date de sortie à rechercher : ");
+                scanf("%s", recherche_resa.date_sortie);
+                break;
+            case 5:
+                printf("Chambre à rechercher : ");
+                scanf("%d", &recherche_resa.chambre);
+                break;
+            case 0:
+                break;
+            default:
+                printf(">>> Option invalide. Veuillez réessayer.\n");
             }
             rechercherReservation(recherche_resa);
         }
