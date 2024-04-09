@@ -265,6 +265,12 @@ int rechercherReservations(int num_resa_rechercher)
     }
 }
 
+// Fonction pour afficher le menu pour la partie Restaurant
+void menuRestaurant()
+{
+    printf("Fonction en cours de développement");
+}
+
 // Fonction pour vérifier si il y a des données à sauvegarder, déclencher par le flag
 void verifSauvegarde()
 {
