@@ -19,10 +19,10 @@ void afficherMenuReservation();
 void menuReservation();
 void afficherReservations();
 void saisirReservations();
+void rechercherRservations();
 void sauvegardeReservations();
 void chargementReservations();
 void modifierReservations();
-void supprimerReservations();
 void menuRestaurant();
 void convMaj(char chaine[]);
 void verifSauvegarde();
@@ -98,11 +98,12 @@ void afficherMenuReservation()
     printf("****** Gérer les réservations ******\n");
     printf("\n");
     printf("-1- Afficher les réservation        \n");
+    printf("-2- Rechercher une réservation      \n");
     printf("-2- Saisir une nouvelle réservation \n");
     printf("-3- Modifier une réservation        \n");
     printf("-4- Supprimer une réservation       \n");
-    printf("-5- Chargement des réservation      \n");
-    printf("-6- Sauvegarde des réservation      \n");
+    printf("-5- Chargement des réservation      \n"); // automatiser lors d'ouverture du programme
+    printf("-6- Sauvegarde des réservation      \n"); // automatiser lors d'ouverture du programme
     printf("-0- Revenir au menu précédent       \n");
     printf("\n");
     printf("Choisissez une option : ");
@@ -124,6 +125,9 @@ void menuReservation()
             break;
         case 2:
             saisirReservations();
+            break;
+        case 3:
+            rechercherReservations();
             break;
         case 5:
             chargementReservations();
@@ -234,15 +238,15 @@ void chargementReservations()
 // Fonction pour modifier les réservations
 void modifierReservations()
 {
-    printf("Fonctionnalité non implémentée pour l'instant.\n");
-    printf("\n");
+    int num_resa_modif, resa_trouve;
+    struct reservation uneresa;
 }
 
 // Fonction pour rechercher une réservation
-int rechercherReservations(int num_resa_rechercher)
+void rechercherReservations()
 {
     struct reservation uneresa;
-    int resa_trouve = 0; // initialiser la variable de recherche
+    int resa_trouve = VAL_INI; // initialiser la variable de recherche
     {
         if (nbresa == 0)
         {
@@ -250,18 +254,65 @@ int rechercherReservations(int num_resa_rechercher)
         }
         else
         {
-            // boucle de recherche
-            for (int i = 0; i < nbresa; i++)
+            printf("Choisir critère de recherche : \n");
+            printf("-1- Numéro de réservation\n");
+            printf("-2- Numéro de client\n");
+            printf("-3- Date d'entrée\n");
+            printf("-4- Date de sortie\n");
+            printf("-5- Chambre\n");
+            printf("-0- Revenir au menu précédent\n");
+
+            int rechercher_choix = VAL_INI;
+            scanf("%d", &rechercher_choix);
+            while (rechercher_choix < 1 || rechercher_choix > 5)
             {
-                uneresa = tabresa[i];
-                if (uneresa.num_r == num_resa_rechercher)
+                printf(">>> Option invalide. Veuillez réessayer.\n");
+                scanf("%d", &rechercher_choix);
+            }
+            while (rechercher_choix != 0)
+            {
+                switch (rechercher_choix)
                 {
-                    resa_trouve = 1;
+                case 1:
+                    printf("Numéro de réservation à rechercher : ");
+                    scanf("%d", &resa_trouve);
                     break;
+                case 2:
+                    printf("Numéro de client à rechercher : ");
+                    scanf("%d", &resa_trouve);
+                    break;
+                case 3:
+                    printf("Date d'entrée à rechercher : ");
+                    scanf("%s", uneresa.date_entree);
+                    break;
+                case 4:
+                    printf("Date de sortie à rechercher : ");
+                    scanf("%s", uneresa.date_sortie);
+                    break;
+                case 5:
+                    printf("Chambre à rechercher : ");
+                    scanf("%d", &resa_trouve);
+                    break;
+                case 0:
+                    break;
+                default:
+                    printf(">>> Option invalide. Veuillez réessayer.\n");
                 }
             }
+            
+            // boucle de recherche
+            //     for (int i = 0; i < nbresa; i++)
+            //     {
+            //         uneresa = tabresa[i];
+            //         if (uneresa.num_r == num_resa_rechercher)
+            //         {
+            //             resa_trouve = i;
+            //             break;
+            //         }
+            //     }
+            // }
+            // return resa_trouve;
         }
-        return resa_trouve;
     }
 }
 
