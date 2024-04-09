@@ -325,6 +325,7 @@ void rechercherReservation(struct reservation resa_a_trouver)
                 nbresa_trouve++;
             }
         }
+        
         if (nbresa_trouve == 0)
         {
             printf(">>> Aucune réservation trouvée\n");
