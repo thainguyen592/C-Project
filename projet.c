@@ -71,7 +71,7 @@ bool dateEgale(struct date d1, struct date d2);
 void dateToString(struct date d, char *dateStr);
 void stringToDate(char *dateStr, struct date *d);
 void stringToDate(char *dateStr, struct date *d);
-int getAnneeActuelle();
+int obtenirAnneeActuelle();
 int genererNumResa();
 void quitter();
 
@@ -563,7 +563,7 @@ void stringToDate(char *dateStr, struct date *d)
 }
 
 // Fonction pour obtenir l'année actuelle
-int getAnneeActuelle()
+int obtenirAnneeActuelle()
 {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
