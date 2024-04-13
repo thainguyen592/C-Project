@@ -3,17 +3,26 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <time.h>
 
 // Constantes
-#define TAILLE_TAB 1000                          // taille maximale des tables réservervation
+#define TAILLE_TAB 10000                         // taille maximale des tables réservervation
+#define TAILLE_NUM_RESA 8                        // taille maximale du numéro de réservation
 #define TAILLE_CHAR 20                           // pour tout les chaines de type char
 #define TAILLE_TEL 10                            // numéro téléphone français
 #define TAILLE_MAIL 40                           // pour tout les chaines de type mail
-#define TAILLE_DATE 8                            // date pour format JJMMYYYY
+#define TAILLE_DATE 9                            // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
 
 // Types global
+struct date // structure d'une date
+{
+    int jour;
+    int mois;
+    int annee;
+};
+
 struct client // structure d'un client
 {
     int code;
@@ -26,12 +35,12 @@ struct client // structure d'un client
 
 struct reservation // structure d'une réservation
 {
-    int num_c;                     // numéro client
-    char date_entree[TAILLE_DATE]; // format JJMMYYYY
-    char date_sortie[TAILLE_DATE]; // format JJMMYYYY
-    int chambre;                   // numéro de chambre
-    int nombre_pers;               // nombre de personnes
-    int num_r;                     // numéro réservation
+    char num_c[TAILLE_CHAR]; // numéro client
+    struct date date_entree;
+    struct date date_sortie;
+    int chambre;     // numéro de chambre
+    int nombre_pers; // nombre de personnes
+    int num_r;       // numéro réservation
 };
 
 // Variables globales
@@ -56,24 +65,19 @@ void menuRestaurant();
 void convMaj(char chaine[]);
 void verifSauvegarde();
 bool bissextile(int annee);
-bool dateExiste(int jour, int mois, int annee);
-bool dateValide(char date[TAILLE_DATE]);
+bool dateExiste(struct date d);
+bool dateSuperieure(struct date d1, struct date d2);
+bool dateEgale(struct date d1, struct date d2);
+void dateToString(struct date d, char *dateStr);
+void stringToDate(char *dateStr, struct date *d);
+void stringToDate(char *dateStr, struct date *d);
+int getAnneeActuelle();
+int genererNumResa();
 void quitter();
 
 // Programme principale
 int main()
 {
-    // Reservations pour les tests
-    struct reservation resa1;
-    resa1.num_c = 1001;
-    strcpy(resa1.date_entree, "01012021");
-    strcpy(resa1.date_sortie, "05012021");
-    resa1.chambre = 101;
-    resa1.nombre_pers = 2;
-    resa1.num_r = 2021001;
-    tabresa[0] = resa1;
-    nbresa += 1;
-
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -103,12 +107,10 @@ void afficherMenuPrincipal()
     printf("\n");
     printf("-1- Gérer les réservations  \n");
     printf("-2- Gérer le restaurant     \n");
-    printf("-0- Quitter                 \n");
-    printf("\n");
+    printf("-0- Quitter                 \n\n");
     printf("Choisissez une option : ");
 }
 
-// Fonction pour afficher le menu de gestion des réservations
 // Fonction pour afficher le menu de gestion des réservations
 void afficherMenuReservation()
 {
@@ -118,8 +120,8 @@ void afficherMenuReservation()
     printf("-2- Rechercher une réservation      \n");
     printf("-3- Saisir une nouvelle réservation \n");
     printf("-4- Modifier une réservation        \n");
-    printf("-5- Chargement des réservation      \n"); // automatiser lors d'ouverture du programme
-    printf("-6- Sauvegarde des réservation      \n"); // automatiser lors d'ouverture du programme
+    printf("-5- Chargement des réservation      \n");
+    printf("-6- Sauvegarde des réservation      \n");
     printf("-0- Revenir au menu précédent       \n");
     printf("\n");
     printf("Choisissez une option : ");
@@ -168,61 +170,71 @@ void saisirReservations()
     int i = nbresa;
     struct reservation uneresa;
 
-    while (uneresa.num_c != 0) // tant que "0" n'est pas entré, continue la boucle
+    printf("Numéro client (0 pour terminer): ");
+    scanf("%d", &uneresa.num_c);
+
+    while (uneresa.num_c != 0)
     {
+        // Saisie et validation de la date d'entrée
+        do
+        {
+            printf("Date d'entrée (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
+            if (!dateExiste(uneresa.date_entree))
+            {
+                printf(">>> Date invalide. Veuillez saisir une date valide (jjmmyyyy).\n");
+            }
+        } while (!dateExiste(uneresa.date_entree));
+
+        // Saisie et validation de la date de sortie
+        do
+        {
+            printf("Date de sortie (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
+            if (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree))
+            {
+                printf(">>> Date de sortie invalide ou antérieure à la date d'entrée. Veuillez saisir une date valide (jjmmyyyy).\n");
+            }
+        } while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree));
+
+        // Saisie des autres informations de réservation
+        printf("Chambre à réserver: ");
+        scanf("%d", &uneresa.chambre);
+        printf("Nombre de personnes: ");
+        scanf("%d", &uneresa.nombre_pers);
+        printf("Numéro de réservation: ");
+        scanf("%d", &uneresa.num_r);
+        printf(">>> Réservation enregistrée\n");
+
+        tabresa[i++] = uneresa; // Sauvegarder les données saisies dans le tableau
+        a_sauvegarder = 1;      // Activer le flag pour sauvegarder les données
+
+        // Demander si ajouter une autre réservation ou terminer
         printf("Numéro client (0 pour terminer): ");
         scanf("%d", &uneresa.num_c);
-        if (uneresa.num_c != 0)
-        {
-            printf("Date d'entrée (jjmmyyyy)    : ");
-            scanf(" %s", uneresa.date_entree);
-            while (!dateValide(uneresa.date_entree))
-            {
-                printf(">>> Date invalide. Veuillez saisir une date (jjmmyyyy): ");
-                scanf(" %s", uneresa.date_entree);
-            }
-            printf("Date de sortie (jjmmyyyy)   : ");
-            scanf(" %s", uneresa.date_sortie);
-            while (!dateValide(uneresa.date_sortie))
-            {
-                printf(">>> Date invalide. Veuillez saisir une date (jjmmyyyy): ");
-                scanf(" %s", uneresa.date_sortie);
-            }
-            printf("Chambre à réserver            : ");
-            scanf(" %d", &uneresa.chambre);
-            printf("Nombre de personnes           : ");
-            scanf(" %d", &uneresa.nombre_pers);
-            printf("Numéro de réservation         : ");
-            scanf(" %d", &uneresa.num_r);
-            printf(">>> Réservation enregistrée \n");
-
-            tabresa[i++] = uneresa; // sauvegardé les données saisies dans le tableau
-            a_sauvegarder = 1;      // activer le flag pour sauvegarder les données
-        }
     }
-    nbresa = i; // mettre à jour le nombre des réservations
-
-    // à implémenter une prompt pour demander si user veut continuer au lieu d'entrer 0 pour terminer
+    nbresa = i; // Mettre à jour le nombre des réservations
 }
 
 // Fonction pour afficher tout les réservations dans la BD
 void afficherReservations()
 {
-    struct reservation uneresa;
-
     if (nbresa == 0)
     {
         printf(">>> Aucune réservation à afficher\n");
     }
     else
     {
-        printf("%6s %-11s %-11s %7s %5s %8s\n", "N°RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N°CLIENT");
+        printf("%-8s %-11s %-11s %-7s %-5s %-8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
+
         for (int i = 0; i < nbresa; i++)
         {
-            uneresa = tabresa[i];
-            printf("%-6d %-11s %-11s %-7d %-5d %-8d\n", uneresa.num_c, uneresa.date_entree, uneresa.date_sortie, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+            char date_in[TAILLE_DATE];
+            char date_out[TAILLE_DATE];
+            dateToString(tabresa[i].date_entree, date_in);
+            dateToString(tabresa[i].date_sortie, date_out);
+            printf("%-8d %-11s %-11s %7d %5d %8d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
         }
-        printf("\n");
     }
 }
 
@@ -231,9 +243,18 @@ void sauvegardeReservations()
 {
     FILE *f1;
     f1 = fopen(DB_RESERVATIONS, "a+");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données\n");
+        return;
+    }
     for (int i = 0; i < nbresa; i++) // boucle de sauvegarde
     {
-        fprintf(f1, "%-6d %-11s %-11s %-7d %-5d %-8d\n", tabresa[i].num_r, tabresa[i].date_entree, tabresa[i].date_sortie, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
+        dateToString(tabresa[i].date_entree, date_in);
+        dateToString(tabresa[i].date_sortie, date_out);
+        fprintf(f1, "%-8d %-11s %-11s %-7d %-5d %-8d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
     }
     fclose(f1);
     a_sauvegarder = 0; // désactiver le flag pour sauvegarder les données
@@ -244,78 +265,98 @@ void sauvegardeReservations()
 void chargementReservations()
 {
     struct reservation uneresa;
-    int i = 0, retour;
-    FILE *f1;
+    FILE *f1 = fopen(DB_RESERVATIONS, "r");
+    char dateEntree[TAILLE_DATE], dateSortie[TAILLE_DATE];
+    int ret;
 
-    verifSauvegarde();
-
-    f1 = fopen(DB_RESERVATIONS, "r+");
-    while (!feof(f1)) // boucle de chargement
+    if (f1 == NULL)
     {
-        retour = fscanf(f1, "%6d %11s %11s %7d %5d %8d", &uneresa.num_r, uneresa.date_entree, uneresa.date_sortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c);
-        if (retour != EOF)
+        printf("Erreur d'ouverture de la base de données.\n");
+        return;
+    }
+
+    while ((ret = fscanf(f1, "%8d %11s %11s %7d %5d %8d",
+                         &uneresa.num_r, dateEntree, dateSortie,
+                         &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c)) == 6)
+    {
+        // Conversion des chaînes de caractères en structures de dates
+        stringToDate(dateEntree, &uneresa.date_entree);
+        stringToDate(dateSortie, &uneresa.date_sortie);
+
+        if (nbresa < TAILLE_TAB)
         {
-            tabresa[i++] = uneresa;
+            tabresa[nbresa++] = uneresa;
+        }
+        else
+        {
+            printf("Limite du tableau de réservations atteinte.\n");
+            break;
         }
     }
+
     fclose(f1);
-    nbresa = i;
-    printf(">>> %d réservations chargées\n", nbresa);
+    printf("%d réservations chargées.\n", nbresa);
 }
 
 // Fonction pour demander le critère de recherche au utilisateur
 void demanderCritereRecherche()
 {
-    struct reservation recherche_resa;
-    {
-        if (nbresa == 0)
-        {
-            printf(">>> Aucune réservation à afficher\n");
-        }
-        else
-        {
-            printf("Choisir critère de recherche : \n");
-            printf("-1- Numéro de réservation\n");
-            printf("-2- Numéro de client\n");
-            printf("-3- Date d'entrée\n");
-            printf("-4- Date de sortie\n");
-            printf("-5- Chambre\n");
-            printf("-0- Revenir au menu précédent\n");
+    struct reservation recherche_resa = {0}; // Initialiser la structure de recherche
+    int rechercher_choix = VAL_INI;
 
-            int rechercher_choix = VAL_INI;
-            scanf("%d", &rechercher_choix);
-            while (rechercher_choix != 0)
-            {
-                scanf("%d", &rechercher_choix);
-                switch (rechercher_choix)
-                {
-                case 1:
-                    printf("Numéro de réservation à rechercher : ");
-                    scanf("%d", &recherche_resa.num_r);
-                    break;
-                case 2:
-                    printf("Numéro de client à rechercher : ");
-                    scanf("%d", &recherche_resa.num_c);
-                    break;
-                case 3:
-                    printf("Date d'entrée à rechercher : ");
-                    scanf("%s", recherche_resa.date_entree);
-                    break;
-                case 4:
-                    printf("Date de sortie à rechercher : ");
-                    scanf("%s", recherche_resa.date_sortie);
-                    break;
-                case 5:
-                    printf("Chambre à rechercher : ");
-                    scanf("%d", &recherche_resa.chambre);
-                    break;
-                case 0:
-                    break;
-                default:
-                    printf(">>> Option invalide. Veuillez réessayer.\n");
-                }
-                rechercherReservation(recherche_resa);
-            }
+    if (nbresa == 0)
+    {
+        printf(">>> Aucune réservation à afficher\n");
+        return;
+    }
+
+    printf("Choisir critère de recherche : \n");
+    printf("-1- Numéro de réservation\n");
+    printf("-2- Numéro de client\n");
+    printf("-3- Date d'entrée\n");
+    printf("-4- Date de sortie\n");
+    printf("-5- Chambre\n");
+    printf("-0- Revenir au menu précédent\n\n");
+    printf("Votre choix : ");
+
+    while (rechercher_choix != 0)
+    {
+        scanf("%d", &rechercher_choix);
+        switch (rechercher_choix)
+        {
+        case 1:
+            printf("Numéro de réservation à rechercher : ");
+            scanf("%d", &recherche_resa.num_r);
+            rechercherReservation(recherche_resa);
+            break;
+        case 2:
+            printf("Numéro de client à rechercher : ");
+            scanf("%d", &recherche_resa.num_c);
+            rechercherReservation(recherche_resa);
+            break;
+        case 3:
+            printf("Date d'entrée à rechercher (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &recherche_resa.date_entree.jour, &recherche_resa.date_entree.mois, &recherche_resa.date_entree.annee);
+            rechercherReservation(recherche_resa);
+            break;
+        case 4:
+            printf("Date de sortie à rechercher (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &recherche_resa.date_sortie.jour, &recherche_resa.date_sortie.mois, &recherche_resa.date_sortie.annee);
+            rechercherReservation(recherche_resa);
+            break;
+        case 5:
+            printf("Chambre à rechercher : ");
+            scanf("%d", &recherche_resa.chambre);
+            rechercherReservation(recherche_resa);
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+        if (rechercher_choix != 0)
+        {
+            printf("Votre choix : ");
         }
     }
 }
@@ -323,40 +364,43 @@ void demanderCritereRecherche()
 // Fonction pour rechercher une réservation par critère de recherche
 void rechercherReservation(struct reservation resa_a_trouver)
 {
-    struct reservation uneresa;
-    int i, j, nbresa_trouve = 0;
-    int idx_resa_trouve[TAILLE_TAB];
+    int nbresa_trouve = 0; // Nombre de réservations trouvées
 
-    if (nbresa == 0)
+    // Afficher l'en-tête seulement s'il y a des réservations à afficher
+    if (nbresa > 0)
     {
-        printf(">>> Aucune réservation à afficher\n");
+        printf("%8s %11s %11s %7s %5s %8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
     }
-    else
+
+    for (int i = 0; i < nbresa; i++)
     {
-        for (i = 0; i < nbresa; i++)
+        bool match = false; // Indicateur si la réservation actuelle correspond aux critères
+
+        // Vérifier les critères de recherche
+        if ((resa_a_trouver.num_r > 0 && tabresa[i].num_r == resa_a_trouver.num_r) ||
+            (resa_a_trouver.num_c > 0 && tabresa[i].num_c == resa_a_trouver.num_c) ||
+            (resa_a_trouver.chambre > 0 && tabresa[i].chambre == resa_a_trouver.chambre) ||
+            (dateEgale(tabresa[i].date_entree, resa_a_trouver.date_entree) && resa_a_trouver.date_entree.jour > 0) ||
+            (dateEgale(tabresa[i].date_sortie, resa_a_trouver.date_sortie) && resa_a_trouver.date_sortie.jour > 0))
         {
-            uneresa = tabresa[i];
-            if (uneresa.num_r == resa_a_trouver.num_r || uneresa.num_c == resa_a_trouver.num_c || strcmp(uneresa.date_entree, resa_a_trouver.date_entree) == 0 || strcmp(uneresa.date_sortie, resa_a_trouver.date_sortie) == 0 || uneresa.chambre == resa_a_trouver.chambre)
-            {
-                idx_resa_trouve[nbresa_trouve] = i;
-                nbresa_trouve++;
-            }
+            match = true;
         }
 
-        if (nbresa_trouve == 0)
+        // Si un match est trouvé, afficher la réservation
+        if (match)
         {
-            printf(">>> Aucune réservation trouvée\n");
+            char date_in[TAILLE_DATE];
+            char date_out[TAILLE_DATE];
+            dateToString(tabresa[i].date_entree, date_in);
+            dateToString(tabresa[i].date_sortie, date_out);
+            printf("%-8d %-11s %-11s %7d %5d %8d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
+            nbresa_trouve++;
         }
-        else
-        {
-            printf(">>> %d réservations trouvées\n", nbresa_trouve);
-            printf("%6s %-11s %-11s %7s %5s %8s\n", "N°RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N°CLIENT");
-            for (j = 0; j < nbresa_trouve; j++)
-            {
-                uneresa = tabresa[idx_resa_trouve[j]];
-                printf("%-6d %-11s %-11s %-7d %-5d %-8d\n", uneresa.num_c, uneresa.date_entree, uneresa.date_sortie, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
-            }
-        }
+    }
+
+    if (nbresa_trouve == 0)
+    {
+        printf(">>> Aucune réservation trouvée correspondant aux critères.\n");
     }
 }
 
@@ -380,10 +424,13 @@ int lanceRecherche(int num_resa_a_rechercher)
 }
 
 // // Fonction pour modifier une réservation par son numéro de réservation
- void modifierReservations()
+void modifierReservations()
 {
     struct reservation uneresa;
-    int i, num_resa_a_modifier, trouve = VAL_INI;
+    int num_resa_a_modifier, trouve;
+
+    printf("Entrez le numéro de la réservation à modifier : ");
+    scanf("%d", &num_resa_a_modifier);
 
     trouve = lanceRecherche(num_resa_a_modifier);
     if (trouve == VAL_INI)
@@ -393,32 +440,43 @@ int lanceRecherche(int num_resa_a_rechercher)
     else
     {
         uneresa = tabresa[trouve];
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
+        struct date new_entree, new_sortie;
+
+        // Afficher les informations actuelles
+        dateToString(uneresa.date_entree, date_in);
+        dateToString(uneresa.date_sortie, date_out);
         printf("Réservation trouvée : \n");
-        printf("%6s %-11s %-11s %7s %5s %8s\n", "N°RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N°CLIENT");
-        printf("%-6d %-11s %-11s %-7d %-5d %-8d\n", uneresa.num_c, uneresa.date_entree, uneresa.date_sortie, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+        printf("%8s %11s %11s %7s %5s %8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
+        printf("%-8d %-11s %-11s %7d %5d %8d\n", uneresa.num_c, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
 
-        printf("Nouvelle date d'entrée (jjmmyyyy)    : ");
-        scanf(" %s", uneresa.date_entree);
-        while (!dateValide(uneresa.date_entree))
+        // Mise à jour de la date d'entrée
+        do
         {
-            printf(">>> Date invalide. Veuillez saisir une date (jjmmyyyy): ");
-            scanf(" %s", uneresa.date_entree);
-        }
-        printf("Nouvelle date de sortie (jjmmyyyy)   : ");
-        scanf(" %s", uneresa.date_sortie);
-        while (!dateValide(uneresa.date_sortie))
-        {
-            printf(">>> Date invalide. Veuillez saisir une date (jjmmyyyy): ");
-            scanf(" %s", uneresa.date_sortie);
-        }
-        printf("Nouvelle chambre à réserver          : ");
-        scanf(" %d", &uneresa.chambre);
-        printf("Nouveau nombre de personnes          : ");
-        scanf(" %d", &uneresa.nombre_pers);
-        printf(">>> Réservation modifiée \n");
+            printf("Nouvelle date d'entrée (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &new_entree.jour, &new_entree.mois, &new_entree.annee);
+        } while (!dateExiste(new_entree));
 
-        tabresa[trouve] = uneresa; // sauvegardé les données saisies dans le tableau
-        a_sauvegarder = 1;         // activer le flag pour sauvegarder les données
+        // Mise à jour de la date de sortie
+        do
+        {
+            printf("Nouvelle date de sortie (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &new_sortie.jour, &new_sortie.mois, &new_sortie.annee);
+        } while (!dateExiste(new_sortie) || !dateSuperieure(new_sortie, new_entree));
+
+        // Mise à jour des autres informations
+        printf("Nouvelle chambre à réserver: ");
+        scanf("%d", &uneresa.chambre);
+        printf("Nouveau nombre de personnes: ");
+        scanf("%d", &uneresa.nombre_pers);
+
+        // Sauvegarde des modifications
+        uneresa.date_entree = new_entree;
+        uneresa.date_sortie = new_sortie;
+        tabresa[trouve] = uneresa;
+        a_sauvegarder = 1;
+        printf(">>> Réservation numéro %d modifiée\n", num_resa_a_modifier);
     }
 }
 
@@ -464,40 +522,69 @@ bool bissextile(int annee)
 }
 
 // Fonction pour vérifier si une date existe
-bool dateExiste(int jour, int mois, int annee)
+bool dateExiste(struct date d)
 {
-    if (mois == 2)
-    {
-        if (jour > 29 || (jour == 29 && !bissextile(annee)))
-            return false;
-    }
-    else if (mois == 4 || mois == 6 || mois == 9 || mois == 11)
-    {
-        if (jour > 30)
-            return false;
-    }
-    return true;
+    int jours_par_mois[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    if (d.annee < 1 || d.mois < 1 || d.mois > 12 || d.jour < 1)
+        return false;
+    if (d.mois == 2 && bissextile(d.annee))
+        jours_par_mois[1] = 29;
+    return d.jour <= jours_par_mois[d.mois - 1];
 }
 
-// Fonction pour vérifier si une date saisi est valide
-bool dateValide(char date[TAILLE_DATE])
+// Fonction pour vérifier si une date est supérieure à une autre
+bool dateSuperieure(struct date d1, struct date d2)
 {
-    int jour, mois, annee;
+    if (d1.annee > d2.annee)
+        return true;
+    if (d1.annee == d2.annee && d1.mois > d2.mois)
+        return true;
+    if (d1.annee == d2.annee && d1.mois == d2.mois && d1.jour > d2.jour)
+        return true;
+    return false;
+}
 
-    if (strlen(date) != 8)
-        return false;
+// Fonction pour vérifier si deux dates sont égales
+bool dateEgale(struct date d1, struct date d2)
+{
+    return (d1.annee == d2.annee && d1.mois == d2.mois && d1.jour == d2.jour);
+}
 
-    jour = (date[0] - '0') * 10 + (date[1] - '0');
-    mois = (date[2] - '0') * 10 + (date[3] - '0');
-    annee = (date[4] - '0') * 1000 + (date[5] - '0') * 100 + (date[6] - '0') * 10 + (date[7] - '0');
+// Fonction pour convertir une structure date en chaine de caractères
+void dateToString(struct date d, char *dateStr)
+{
+    sprintf(dateStr, "%02d%02d%04d", d.jour, d.mois, d.annee);
+}
 
-    if (jour < 1 || jour > 31 || mois < 1 || mois > 12 || annee < 1900 || annee > 2100)
-        return false;
+// Fonction pour convertir une chaîne de caractères en structure de date
+void stringToDate(char *dateStr, struct date *d)
+{
+    sscanf(dateStr, "%2d%2d%4d", &d->jour, &d->mois, &d->annee);
+}
 
-    if (!dateExiste(jour, mois, annee))
-        return false;
+// Fonction pour obtenir l'année actuelle
+int getAnneeActuelle()
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    return tm.tm_year + 1900;
+}
 
-    return true;
+// Fonction pour générer un numéro de réservation unique au format "Année + Numéro"
+int genererNumResa()
+{
+    static int num = 0;                          // Variable statique pour garder le compte entre les appels
+    static int derniere_annee = 0;               // Variable statique pour suivre l'année lors du dernier appel
+    int annee_actuelle = obtenirAnneeActuelle(); // Obtention de l'année actuelle
+
+    // Vérification si l'année a changé
+    if (annee_actuelle != derniere_annee)
+    {
+        num = 0;                         // Réinitialisation du compteur si l'année a changé
+        derniere_annee = annee_actuelle; // Mise à jour de derniere_annee à l'année actuelle
+    }
+
+    return annee_actuelle * 1000 + ++num; // Combinaison de l'année et du numéro incrémenté
 }
 
 // Fonciton pour quitter le programme
