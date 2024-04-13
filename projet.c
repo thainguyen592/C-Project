@@ -6,13 +6,13 @@
 #include <time.h>
 
 // Constantes
-#define TAILLE_TAB 10000                         // taille maximale des tables réservervation
-#define TAILLE_NUM_RESA 8                        // taille maximale du numéro de réservation
-#define TAILLE_CHAR 20                           // pour tout les chaines de type char
-#define TAILLE_TEL 10                            // numéro téléphone français
-#define TAILLE_MAIL 40                           // pour tout les chaines de type mail
-#define TAILLE_DATE 9                            // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
-#define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
+#define TAILLE_TAB 10000                                   // taille maximale des tables réservervation
+#define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
+#define TAILLE_CHAR 20                                     // pour tout les chaines de type char
+#define TAILLE_TEL 10                                      // numéro téléphone français
+#define TAILLE_MAIL 40                                     // pour tout les chaines de type mail
+#define TAILLE_DATE 12                                     // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
+#define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
 
 // Types global
@@ -257,10 +257,10 @@ void afficherReservations()
         {
             debut = 0;
         }
-        
+
         // Afficher l'en-tête
         printf("%-8s %-11s %-11s %-7s %-5s %-8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
-        for (i=debut; i < nbresa; i++)
+        for (i = debut; i < nbresa; i++)
         {
             char date_in[TAILLE_DATE];
             char date_out[TAILLE_DATE];
