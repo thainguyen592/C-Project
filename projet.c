@@ -50,6 +50,7 @@ void demanderCritereRecherche();
 void rechercherReservation(struct reservation resa_a_trouver);
 void sauvegardeReservations();
 void chargementReservations();
+int lanceRecherche(int num_resa_a_rechercher);
 void modifierReservations();
 void menuRestaurant();
 void convMaj(char chaine[]);
@@ -319,7 +320,7 @@ void demanderCritereRecherche()
     }
 }
 
-// Fonction pour rechercher une réservation par critère
+// Fonction pour rechercher une réservation par critère de recherche
 void rechercherReservation(struct reservation resa_a_trouver)
 {
     struct reservation uneresa;
@@ -359,7 +360,7 @@ void rechercherReservation(struct reservation resa_a_trouver)
     }
 }
 
-// Fonction pour lancer une recherche de réservation
+// Fonction pour lancer une recherche de réservation par son numéro, retourne l'index de la réservation
 int lanceRecherche(int num_resa_a_rechercher)
 {
     struct reservation uneresa;
