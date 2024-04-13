@@ -126,7 +126,9 @@ void afficherMenuReservation()
     printf("-5- Supprimer une réservation       \n");
     printf("-6- Sauvegarde des réservation      \n");
     printf("-0- Revenir au menu précédent       \n");
+    printf("\n");
     printf("<!> %d réservations enregistrées    \n", nbresa);
+    printf("\n");
     printf("Choisissez une option : ");
 }
 
@@ -343,17 +345,16 @@ void demanderCritereRecherche()
         return;
     }
 
-    printf("Choisir critère de recherche : \n");
-    printf("-1- Numéro de réservation\n");
-    printf("-2- Numéro de client\n");
-    printf("-3- Date d'entrée\n");
-    printf("-4- Date de sortie\n");
-    printf("-5- Chambre\n");
-    printf("-0- Revenir au menu précédent\n\n");
-    printf("Votre choix : ");
-
     while (rechercher_choix != 0)
     {
+        printf("Choisir critère de recherche : \n");
+        printf("-1- Numéro de réservation\n");
+        printf("-2- Numéro de client\n");
+        printf("-3- Date d'entrée\n");
+        printf("-4- Date de sortie\n");
+        printf("-5- Chambre\n");
+        printf("-0- Revenir au menu précédent\n\n");
+        printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
         switch (rechercher_choix)
         {
@@ -386,10 +387,6 @@ void demanderCritereRecherche()
             break;
         default:
             printf(">>> Option invalide. Veuillez réessayer.\n");
-        }
-        if (rechercher_choix != 0)
-        {
-            printf("Votre choix : ");
         }
     }
 }
