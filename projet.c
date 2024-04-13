@@ -13,7 +13,7 @@
 #define TAILLE_MAIL 40                           // pour tout les chaines de type mail
 #define TAILLE_DATE 9                            // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
-#define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
+#define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
 
 // Types global
 struct date // structure d'une date
@@ -35,7 +35,7 @@ struct client // structure d'un client
 
 struct reservation // structure d'une réservation
 {
-    char num_c[TAILLE_CHAR]; // numéro client
+    int num_c; // numéro client
     struct date date_entree;
     struct date date_sortie;
     int chambre;     // numéro de chambre
@@ -61,9 +61,11 @@ void sauvegardeReservations();
 void chargementReservations();
 int lanceRecherche(int num_resa_a_rechercher);
 void modifierReservations();
+void supprimerReservations();
 void menuRestaurant();
 void convMaj(char chaine[]);
 void verifSauvegarde();
+bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie);
 bool bissextile(int annee);
 bool dateExiste(struct date d);
 bool dateSuperieure(struct date d1, struct date d2);
@@ -78,6 +80,7 @@ void quitter();
 // Programme principale
 int main()
 {
+    chargementReservations(); // Charger les réservations depuis la base de données
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -120,10 +123,10 @@ void afficherMenuReservation()
     printf("-2- Rechercher une réservation      \n");
     printf("-3- Saisir une nouvelle réservation \n");
     printf("-4- Modifier une réservation        \n");
-    printf("-5- Chargement des réservation      \n");
+    printf("-5- Supprimer une réservation       \n");
     printf("-6- Sauvegarde des réservation      \n");
     printf("-0- Revenir au menu précédent       \n");
-    printf("\n");
+    printf("<!> %d réservations enregistrées    \n", nbresa);
     printf("Choisissez une option : ");
 }
 
@@ -151,9 +154,12 @@ void menuReservation()
             modifierReservations();
             break;
         case 5:
-            chargementReservations();
+            supprimerReservations();
             break;
         case 6:
+            chargementReservations();
+            break;
+        case 7:
             sauvegardeReservations();
             break;
         case 0:
@@ -169,54 +175,67 @@ void saisirReservations()
 {
     int i = nbresa;
     struct reservation uneresa;
-
-    printf("Numéro client (0 pour terminer): ");
-    scanf("%d", &uneresa.num_c);
+    uneresa.num_c = VAL_INI; // Initialiser le numéro client pour entrer dans la boucle
 
     while (uneresa.num_c != 0)
     {
-        // Saisie et validation de la date d'entrée
-        do
+        printf("Numéro client (0 pour terminer): ");
+        scanf("%d", &uneresa.num_c);
+        if (uneresa.num_c == 0)
         {
+            break; // Sortie de la boucle si le numéro client est 0
+        }
+
+        // Saisir et vérifier la date d'entrée
+        printf("Date d'entrée (jjmmyyyy): ");
+        scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
+        while (!dateExiste(uneresa.date_entree))
+        {
+            printf(">>> Date d'entrée invalide. Veuillez saisir une date valide (jjmmyyyy).\n");
             printf("Date d'entrée (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
-            if (!dateExiste(uneresa.date_entree))
-            {
-                printf(">>> Date invalide. Veuillez saisir une date valide (jjmmyyyy).\n");
-            }
-        } while (!dateExiste(uneresa.date_entree));
+        }
 
-        // Saisie et validation de la date de sortie
-        do
+        // Saisir et vérifier la date de sortie
+        printf("Date de sortie (jjmmyyyy): ");
+        scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
+        while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree))
         {
+            printf(">>> Date de sortie invalide. Veuillez saisir une date valide (jjmmyyyy) supérieure à la date d'entrée.\n");
             printf("Date de sortie (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
-            if (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree))
-            {
-                printf(">>> Date de sortie invalide ou antérieure à la date d'entrée. Veuillez saisir une date valide (jjmmyyyy).\n");
-            }
-        } while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree));
+        }
 
-        // Saisie des autres informations de réservation
-        printf("Chambre à réserver: ");
-        scanf("%d", &uneresa.chambre);
+        // Saisir et vérifier le nombre de personnes
         printf("Nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
-        printf("Numéro de réservation: ");
-        scanf("%d", &uneresa.num_r);
-        printf(">>> Réservation enregistrée\n");
+
+        /*
+        ***----------------------------------------------------------------***
+           Liste des chambres disponibles aux besoins du client à afficher
+        ***----------------------------------------------------------------***
+        */
+
+        // Saisir et vérifier le numéro de chambre
+        printf("Chambre à réserver: ");
+        scanf("%d", &uneresa.chambre);
+        while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie))
+        {
+            printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
+            printf("Chambre à réserver: ");
+            scanf("%d", &uneresa.chambre);
+        }
+
+        uneresa.num_r = genererNumResa(); // Générer un numéro de réservation unique
+        printf(">>> Réservation numéro %d enregistrée\n", uneresa.num_r);
 
         tabresa[i++] = uneresa; // Sauvegarder les données saisies dans le tableau
         a_sauvegarder = 1;      // Activer le flag pour sauvegarder les données
-
-        // Demander si ajouter une autre réservation ou terminer
-        printf("Numéro client (0 pour terminer): ");
-        scanf("%d", &uneresa.num_c);
     }
     nbresa = i; // Mettre à jour le nombre des réservations
 }
 
-// Fonction pour afficher tout les réservations dans la BD
+// Fonction pour afficher tout les réservations ou 10 dernieres dans la BD
 void afficherReservations()
 {
     if (nbresa == 0)
@@ -225,9 +244,23 @@ void afficherReservations()
     }
     else
     {
+        char reponse;
+        int i, debut;
+        printf("Vous voulez afficher les 10 dernières réservations ? (o/n) : ");
+        scanf(" %c", &reponse);
+        convMaj(&reponse);
+        if (reponse == 'O' && nbresa > 10)
+        {
+            debut = nbresa - 10;
+        }
+        else
+        {
+            debut = 0;
+        }
+        
+        // Afficher l'en-tête
         printf("%-8s %-11s %-11s %-7s %-5s %-8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
-
-        for (int i = 0; i < nbresa; i++)
+        for (i=debut; i < nbresa; i++)
         {
             char date_in[TAILLE_DATE];
             char date_out[TAILLE_DATE];
@@ -480,10 +513,74 @@ void modifierReservations()
     }
 }
 
+// Fonction pour supprimer une réservation par son numéro de réservation
+void supprimerReservations()
+{
+    struct reservation uneresa;
+    int num_resa_a_supprimer, trouve;
+
+    printf("Entrez le numéro de la réservation à supprimer : ");
+    scanf("%d", &num_resa_a_supprimer);
+
+    trouve = lanceRecherche(num_resa_a_supprimer);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Réservation numéro %d non trouvée\n", num_resa_a_supprimer);
+    }
+    else
+    {
+        uneresa = tabresa[trouve];
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
+
+        // Afficher les informations actuelles
+        dateToString(uneresa.date_entree, date_in);
+        dateToString(uneresa.date_sortie, date_out);
+        printf("Réservation trouvée : \n");
+        printf("%8s %11s %11s %7s %5s %8s\n", "N_RESA", "DATE ENTREE", "DATE SORTIE", "CHAMBRE", "PERS.", "N_CLIENT");
+        printf("%-8d %-11s %-11s %7d %5d %8d\n", uneresa.num_c, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+
+        // Demander confirmation pour supprimer la réservation
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la suppression de la réservation (o/n) : ");
+        scanf("%s", reponse);
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Supprimer la réservation
+            for (int i = trouve; i < nbresa - 1; i++)
+            {
+                tabresa[i] = tabresa[i + 1];
+            }
+            nbresa--;
+            a_sauvegarder = 1;
+            printf(">>> Réservation numéro %d supprimée\n", num_resa_a_supprimer);
+        }
+    }
+}
+
 // Fonction pour afficher le menu pour la partie Restaurant
 void menuRestaurant()
 {
     printf("Fonction en cours de développement");
+}
+
+// Fonction pour vérifier si une chambre est disponible pour une période donnée
+bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie)
+{
+    for (int i = 0; i < nbresa; i++)
+    {
+        if (tabresa[i].chambre == chambre)
+        {
+            if ((dateEgale(date_entree, tabresa[i].date_entree) || dateEgale(date_entree, tabresa[i].date_sortie)) ||
+                (dateEgale(date_sortie, tabresa[i].date_entree) || dateEgale(date_sortie, tabresa[i].date_sortie)) ||
+                (dateSuperieure(date_entree, tabresa[i].date_entree) && dateSuperieure(tabresa[i].date_sortie, date_sortie)))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 // Fonction pour vérifier si il y a des données à sauvegarder, déclencher par le flag
@@ -570,21 +667,21 @@ int obtenirAnneeActuelle()
     return tm.tm_year + 1900;
 }
 
-// Fonction pour générer un numéro de réservation unique au format "Année + Numéro"
+// Fonction pour générer un numéro de réservation unique au format "yyyyxxxx"
 int genererNumResa()
 {
-    static int num = 0;                          // Variable statique pour garder le compte entre les appels
+    static int num = 1;                          // Variable statique pour garder le compte entre les appels
     static int derniere_annee = 0;               // Variable statique pour suivre l'année lors du dernier appel
     int annee_actuelle = obtenirAnneeActuelle(); // Obtention de l'année actuelle
 
     // Vérification si l'année a changé
     if (annee_actuelle != derniere_annee)
     {
-        num = 0;                         // Réinitialisation du compteur si l'année a changé
+        num = 1;                         // Réinitialisation du compteur si l'année a changé
         derniere_annee = annee_actuelle; // Mise à jour de derniere_annee à l'année actuelle
     }
 
-    return annee_actuelle * 1000 + ++num; // Combinaison de l'année et du numéro incrémenté
+    return annee_actuelle * 10000 + ++num;
 }
 
 // Fonciton pour quitter le programme
