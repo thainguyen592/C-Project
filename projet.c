@@ -128,8 +128,6 @@ void afficherMenuReservation()
     printf("-6- Sauvegarde des réservation      \n");
     printf("-0- Revenir au menu précédent       \n");
     printf("\n");
-    printf("<!> %d réservations enregistrées    \n", nbresa);
-    printf("\n");
     printf("Choisissez une option : ");
 }
 
@@ -144,6 +142,7 @@ void menuReservation()
     int resa_choix = VAL_INI;
     while (resa_choix != 0)
     {
+
         afficherMenuReservation();
         scanf("%d", &resa_choix);
         // Traitement des options
@@ -235,8 +234,8 @@ void saisirReservations()
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir une autre réservation ? (o/n) : ");
         scanf(" %c", &continuer); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
-        continuer = tolower(continuer);
-    } while (continuer == 'o');
+        continuer = toupper(continuer);
+    } while (continuer == 'O');
 
     nbresa = i; // Mettre à jour le nombre des réservations
 }
@@ -250,18 +249,20 @@ void afficherReservations()
     }
     else
     {
-        char reponse;
-        int i, debut;
-        printf("Vous voulez afficher les 10 dernières réservations ? (o/n) : ");
-        scanf(" %c", &reponse);
-        convMaj(&reponse);
-        if (reponse == 'O' && nbresa > 10)
+        char reponse = 'n';
+        int i, debut = 0;
+
+        printf("<!> %d réservations enregistrées dans la base\n", nbresa);
+        printf("\n");
+        if (nbresa > 10)
         {
-            debut = nbresa - 10;
-        }
-        else
-        {
-            debut = 0;
+            printf("Vous voulez afficher les 10 dernières réservations ? (o/n) : ");
+            scanf(" %c", &reponse);
+            reponse = toupper(reponse);
+            if (reponse == 'O')
+            {
+                debut = nbresa - 10;
+            }
         }
 
         afficherEnTeteReservations();
@@ -273,6 +274,7 @@ void afficherReservations()
             dateToString(tabresa[i].date_sortie, date_out);
             printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
         }
+        printf("\n");
     }
 }
 
@@ -280,7 +282,7 @@ void afficherReservations()
 void sauvegardeReservations()
 {
     FILE *f1;
-    f1 = fopen(DB_RESERVATIONS, "a+");
+    f1 = fopen(DB_RESERVATIONS, "a");
     if (f1 == NULL)
     {
         printf(">>> Erreur d'ouverture de la base de données\n");
@@ -292,7 +294,7 @@ void sauvegardeReservations()
         char date_out[TAILLE_DATE];
         dateToString(tabresa[i].date_entree, date_in);
         dateToString(tabresa[i].date_sortie, date_out);
-        fprintf("%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
+        fprintf(f1, "%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
     }
     fclose(f1);
     a_sauvegarder = 0; // désactiver le flag pour sauvegarder les données
