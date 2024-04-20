@@ -529,7 +529,7 @@ void modifierReservations()
         dateToString(uneresa.date_sortie, date_out);
         printf("Réservation trouvée : \n");
         afficherEnTeteReservations();
-        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", uneresa.num_c, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", uneresa.num_r, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_c);
 
         // Mise à jour de la date d'entrée
         do
@@ -545,11 +545,19 @@ void modifierReservations()
             scanf("%2d%2d%4d", &new_sortie.jour, &new_sortie.mois, &new_sortie.annee);
         } while (!dateExiste(new_sortie) || !dateSuperieure(new_sortie, new_entree));
 
-        // Mise à jour des autres informations
-        printf("Nouvelle chambre à réserver: ");
-        scanf("%d", &uneresa.chambre);
+        // Mise à jour nombre de personnes
         printf("Nouveau nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
+
+        // Mise à jour de la chambre
+        printf("Nouvelle chambre à réserver: ");
+        scanf("%d", &uneresa.chambre);
+        while (!chambreDisponible(uneresa.chambre, new_entree, new_sortie))
+        {
+            printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
+            printf("Nouvelle chambre à réserver: ");
+            scanf("%d", &uneresa.chambre);
+        }
 
         // Sauvegarde des modifications
         uneresa.date_entree = new_entree;
@@ -717,64 +725,62 @@ void saisirClient()
     // boucle de saisie pour un nouveau client
     do
     {
-        // Saisir et vérifier le nom
-        printf("Nom : ");
-        scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
-        clearBuffer();
-        while (!nomValide(unclient.nom))
+        // Saisir le nom du client
+        do
         {
-            printf("Nom invalide, veuillez saisir un nom valide : ");
-            scanf(" %[^\n]", unclient.nom);
-            clearBuffer();
-        }
+            printf("Nom : ");
+            scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+            if (!nomValide(unclient.nom))
+            {
+                printf("Nom invalide, veuillez saisir un nom valide.\n");
+            }
+        } while (!nomValide(unclient.nom));
         convMaj(unclient.nom);
 
-        // Saisir et vérifier le prénom
-        printf("Prénom : ");
-        scanf(" %[^\n]", unclient.prenom);
-        clearBuffer();
-        while (!nomValide(unclient.prenom))
+        // Saisir le prénom du client
+        do
         {
-            printf("Prénom invalide, veuillez saisir un prénom valide : ");
+            printf("Prénom : ");
             scanf(" %[^\n]", unclient.prenom);
-            clearBuffer();
-        }
+            if (!nomValide(unclient.prenom))
+            {
+                printf("Prénom invalide, veuillez saisir un prénom valide.\n");
+            }
+        } while (!nomValide(unclient.prenom));
         convMaj(unclient.prenom);
 
-        // Saisir et vérifier la date de naissance
-        printf("Date de naissance (jjmmyyyy) : ");
-        scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
-        while (!dateExiste(unclient.date_nais))
+        // Saisir la date de naissance du client
+        do
         {
-            printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy) : ");
+            printf("Date de naissance (jjmmyyyy) : ");
             scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
-        }
+            if (!dateExiste(unclient.date_nais))
+            {
+                printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy).\n");
+            }
+        } while (!dateExiste(unclient.date_nais));
 
-        // Saisir et vérifier le numéro de téléphone
-        printf("Téléphone : ");
-        scanf(" %[^\n]", unclient.tel);
-        clearBuffer();
-        while (!telValide(unclient.tel))
+        // Saisir le numéro de téléphone du client
+        do
         {
-            printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide : ");
-            scanf(" %[^\n]", unclient.tel);
-            clearBuffer();
-        }
-        printf("Debug - Téléphone capturé: '%s'\n", unclient.tel); // Debug output
+            printf("Téléphone : ");
+            scanf("%s", unclient.tel);
+            if (!telValide(unclient.tel))
+            {
+                printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
+            }
+        } while (!telValide(unclient.tel));
 
-        // Saisir et vérifier l'adresse mail
-        printf("Adresse mail : ");
-        scanf(" %[^\n]", unclient.mail);
-        clearBuffer();
-        while (!mailValide(unclient.mail))
+        // Saisir l'adresse mail du client
+        do
         {
-            printf("Adresse mail invalide, veuillez saisir une adresse mail valide : ");
-            scanf(" %[^\n]", unclient.mail);
-            clearBuffer();
-        }
-        printf("Debug - Email capturé: '%s'\n", unclient.mail); // Debug output
-
-        printf("Debug - Téléphone capturé: '%s'\n", unclient.tel); // Debug output
+            printf("Adresse mail : ");
+            scanf("%s", unclient.mail);
+            if (!mailValide(unclient.mail))
+            {
+                printf("Adresse mail invalide, veuillez saisir une adresse mail valide.\n");
+            }
+        } while (!mailValide(unclient.mail));
 
         // Générer un code client unique
         unclient.code = genererCodeClient();
@@ -946,22 +952,58 @@ void modifierClient()
         afficherEnTeteClients();
         printf("%-6d %-20s %-20s %-9s %-10s %-s\n", unclient.code, unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
-        // Mise à jour de la date de naissance
+        // mise à jour des informations
         do
         {
-            printf("Nouvelle date de naissance (jjmmyyyy): ");
+            printf("Nouveau nom : ");
+            scanf(" %[^\n]", unclient.nom);
+            if (!nomValide(unclient.nom))
+            {
+                printf("Nom invalide, veuillez saisir un nom valide.\n");
+            }
+        } while (!nomValide(unclient.nom));
+        convMaj(unclient.nom);
+
+        do
+        {
+            printf("Nouveau prénom : ");
+            scanf(" %[^\n]", unclient.prenom);
+            if (!nomValide(unclient.prenom))
+            {
+                printf("Prénom invalide, veuillez saisir un prénom valide.\n");
+            }
+        } while (!nomValide(unclient.prenom));
+        convMaj(unclient.prenom);
+
+        do
+        {
+            printf("Nouvelle date de naissance (jjmmyyyy) : ");
             scanf("%2d%2d%4d", &new_date_nais.jour, &new_date_nais.mois, &new_date_nais.annee);
+            if (!dateExiste(new_date_nais))
+            {
+                printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy).\n");
+            }
         } while (!dateExiste(new_date_nais));
 
-        // Mise à jour des autres informations
-        printf("Nouveau nom : ");
-        scanf("%s", unclient.nom);
-        printf("Nouveau prénom : ");
-        scanf("%s", unclient.prenom);
-        printf("Nouveau téléphone : ");
-        scanf("%s", unclient.tel);
-        printf("Nouveau mail : ");
-        scanf("%s", unclient.mail);
+        do
+        {
+            printf("Nouveau numéro de téléphone : ");
+            scanf("%s", unclient.tel);
+            if (!telValide(unclient.tel))
+            {
+                printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
+            }
+        } while (!telValide(unclient.tel));
+
+        do
+        {
+            printf("Nouvelle adresse mail : ");
+            scanf("%s", unclient.mail);
+            if (!mailValide(unclient.mail))
+            {
+                printf("Adresse mail invalide, veuillez saisir une adresse mail valide.\n");
+            }
+        } while (!mailValide(unclient.mail));
 
         // Sauvegarde des modifications
         unclient.date_nais = new_date_nais;
@@ -1050,7 +1092,7 @@ void chargementClients()
         return;
     }
 
-    while ((ret = fscanf(f1, "%-6d %-20s %-20s %-9s %-10s %-s\n", &unclient.code, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
+    while ((ret = fscanf(f1, "%6d %20s %20s %9s %10s %s\n", &unclient.code, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateNais, &unclient.date_nais);
