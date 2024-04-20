@@ -128,6 +128,7 @@ int main()
     {
         afficherMenuPrincipal();
         scanf("%d", &main_choix);
+        fflush(stdin);
         switch (main_choix)
         {
         case 1:
@@ -194,6 +195,7 @@ void menuReservation()
 
         afficherMenuReservation();
         scanf("%d", &resa_choix);
+        fflush(stdin);
         // Traitement des options
         switch (resa_choix)
         {
@@ -405,6 +407,7 @@ void demanderCritereRechercheReservations()
         printf("-0- Revenir au menu précédent\n\n");
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
+        fflush(stdin);
         switch (rechercher_choix)
         {
         case 1:
@@ -647,6 +650,7 @@ void menuClient()
     {
         afficherMenuClient();
         scanf("%d", &client_choix);
+        fflush(stdin);
         // Traitement des options
         switch (client_choix)
         {
@@ -824,6 +828,7 @@ void demanderCritereRechercheClients()
         printf("-0- Revenir au menu précédent\n\n");
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
+        fflush(stdin);
         switch (rechercher_choix)
         {
         case 1:
