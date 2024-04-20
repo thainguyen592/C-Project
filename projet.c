@@ -240,6 +240,24 @@ void saisirReservations()
     nbresa = i; // Mettre à jour le nombre des réservations
 }
 
+// Fonction pour la saisir d'un nouveau client
+void saisirClient()
+{
+    struct client unclient;
+    printf("Code client: ");
+    scanf("%d", &unclient.code);
+    printf("Nom: ");
+    scanf("%s", unclient.nom);
+    printf("Prénom: ");
+    scanf("%s", unclient.prenom);
+    printf("Date de naissance (jjmmyyyy): ");
+    scanf("%s", unclient.date_nais);
+    printf("Téléphone: ");
+    scanf("%s", unclient.tel);
+    printf("Mail: ");
+    scanf("%s", unclient.mail);
+}
+
 // Fonction pour afficher tout les réservations ou 10 dernieres dans la BD
 void afficherReservations()
 {
