@@ -14,6 +14,7 @@
 #define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
+#define DB_CLIENTS "liste_clients_generated.txt"           // base de données pour les clients
 
 // Types global
 struct date // structure d'une date
@@ -28,7 +29,7 @@ struct client // structure d'un client
     int code;
     char nom[TAILLE_CHAR];
     char prenom[TAILLE_CHAR];
-    char date_nais[TAILLE_DATE];
+    struct date date_nais;
     char tel[TAILLE_TEL];
     char mail[TAILLE_MAIL];
 };
@@ -63,6 +64,10 @@ void chargementReservations();
 int lanceRecherche(int num_resa_a_rechercher);
 void modifierReservations();
 void supprimerReservations();
+void saisirClient();
+bool nomValide(char nom[]);
+bool telValide(char tel[]);
+bool mailValide(char mail[]);
 void menuRestaurant();
 void convMaj(char chaine[]);
 void verifSauvegarde();
@@ -181,7 +186,7 @@ void menuReservation()
 void saisirReservations()
 {
     int i = nbresa;
-    char continuer = 'o'; // Variable pour contrôler la continuation de la boucle
+    char continuer = 'O'; // Variable pour contrôler la continuation de la boucle
 
     do
     {
@@ -238,24 +243,6 @@ void saisirReservations()
     } while (continuer == 'O');
 
     nbresa = i; // Mettre à jour le nombre des réservations
-}
-
-// Fonction pour la saisir d'un nouveau client
-void saisirClient()
-{
-    struct client unclient;
-    printf("Code client: ");
-    scanf("%d", &unclient.code);
-    printf("Nom: ");
-    scanf("%s", unclient.nom);
-    printf("Prénom: ");
-    scanf("%s", unclient.prenom);
-    printf("Date de naissance (jjmmyyyy): ");
-    scanf("%s", unclient.date_nais);
-    printf("Téléphone: ");
-    scanf("%s", unclient.tel);
-    printf("Mail: ");
-    scanf("%s", unclient.mail);
 }
 
 // Fonction pour afficher tout les réservations ou 10 dernieres dans la BD
@@ -575,6 +562,110 @@ void supprimerReservations()
             printf(">>> Réservation numéro %d supprimée\n", num_resa_a_supprimer);
         }
     }
+}
+
+// Fonction pour la saisir d'un nouveau client
+void saisirClient()
+{
+    struct client unclient;
+    char reponse = 'O';
+
+    // boucle de saisie pour un nouveau client
+    do
+    {
+        // Saisir et vérifier le nom
+        printf("Nom : ");
+        scanf("%s", unclient.nom);
+        while (!nomValide(unclient.nom)){
+            printf("Nom invalide, veuillez saisir un nom valide : ");
+            scanf("%s", unclient.nom);
+        }
+
+        // Saisir et vérifier le prénom
+        printf("Prénom : ");
+        scanf("%s", unclient.prenom);
+        while (!nomValide(unclient.prenom)){
+            printf("Prénom invalide, veuillez saisir un prénom valide : ");
+            scanf("%s", unclient.prenom);
+        }
+
+        // Saisir et vérifier la date de naissance
+        printf("Date de naissance (jjmmyyyy) : ");
+        scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee); 
+        while (!dateExiste(unclient.date_nais)){
+            printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy) : ");
+            scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
+        }
+
+        // Saisir et vérifier le numéro de téléphone
+        printf("Téléphone : ");
+        scanf("%s", unclient.tel);
+        while (!telValide(unclient.tel)){
+            printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide : ");
+            scanf("%s", unclient.tel);
+        }
+
+        // Saisir et vérifier l'adresse mail
+        printf("Adresse mail : ");
+        scanf("%s", unclient.mail);
+        while (!mailValide(unclient.mail)){
+            printf("Adresse mail invalide, veuillez saisir une adresse mail valide : ");
+            scanf("%s", unclient.mail);
+        }
+
+        // Afficher les informations saisies
+        printf(">>> Client enregistré : %s %s, né le %s, téléphone : %s, mail : %s\n", unclient.nom, unclient.prenom, unclient.date_nais, unclient.tel, unclient.mail);
+
+        // Demander à l'utilisateur s'il souhaite continuer
+        printf("Voulez-vous saisir un autre client ? (o/n) : ");
+        scanf("%c", reponse);
+        convMaj(reponse);
+    } while (reponse == 'O');
+}
+
+// Fonction pour vérifier si le nom ou prénom d'un client est valide
+bool nomValide(char nom[])
+{
+    int i, taille;
+    taille = strlen(nom);
+    if (taille == 0 || taille > TAILLE_CHAR)
+        return false;
+    for (i = 0; i < taille; i++)
+    {
+        if (!isalpha(nom[i]) && nom[i] != '-')
+            return false;
+    }
+    return true;
+}
+
+// Fonction pour vérifier si un numéro de téléphone est valide
+bool telValide(char tel[])
+{
+    int i, taille;
+    taille = strlen(tel);
+    if (taille != TAILLE_TEL)
+        return false;
+    for (i = 0; i < taille; i++)
+    {
+        if (!isdigit(tel[i]))
+            return false;
+    }
+    return true;
+}
+
+// Fonction pour vérifier si une adresse mail est valide
+bool mailValide(char mail[])
+{
+    int i, taille;
+    taille = strlen(mail);
+    if (taille == 0 || taille > TAILLE_MAIL)
+        return false;
+    for (i = 0; i < taille; i++)
+    {
+        if (!isalnum(mail[i]) && mail[i] != '@' && mail[i] != '.' && mail[i] != '_')
+            return false;
+    }
+    return true;
 }
 
 // Fonction pour afficher le menu pour la partie Restaurant
