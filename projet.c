@@ -173,26 +173,21 @@ void menuReservation()
 }
 
 // Fonction pour saisie une nouvelle réservation
-void saisirReservations()
-{
+void saisirReservations() {
     int i = nbresa;
-    struct reservation uneresa;
-    uneresa.num_c = VAL_INI; // Initialiser le numéro client pour entrer dans la boucle
+    char continuer = 'o'; // Variable pour contrôler la continuation de la boucle
 
-    while (uneresa.num_c != 0)
-    {
-        printf("Numéro client (0 pour terminer): ");
+    do {
+        struct reservation uneresa;
+
+        // Saisir et vérifier le numéro du client
+        printf("Numéro client: ");
         scanf("%d", &uneresa.num_c);
-        if (uneresa.num_c == 0)
-        {
-            break; // Sortie de la boucle si le numéro client est 0
-        }
-
+        
         // Saisir et vérifier la date d'entrée
         printf("Date d'entrée (jjmmyyyy): ");
         scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
-        while (!dateExiste(uneresa.date_entree))
-        {
+        while (!dateExiste(uneresa.date_entree)) {
             printf(">>> Date d'entrée invalide. Veuillez saisir une date valide (jjmmyyyy).\n");
             printf("Date d'entrée (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
@@ -201,9 +196,8 @@ void saisirReservations()
         // Saisir et vérifier la date de sortie
         printf("Date de sortie (jjmmyyyy): ");
         scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
-        while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree))
-        {
-            printf(">>> Date de sortie invalide. Veuillez saisir une date valide (jjmmyyyy) supérieure à la date d'entrée.\n");
+        while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree)) {
+            printf(">>> Date de sortie invalide ou antérieure à la date d'entrée. Veuillez saisir une date valide (jjmmyyyy) supérieure à la date d'entrée.\n");
             printf("Date de sortie (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
         }
@@ -212,17 +206,10 @@ void saisirReservations()
         printf("Nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
 
-        /*
-        ***----------------------------------------------------------------***
-           Liste des chambres disponibles aux besoins du client à afficher
-        ***----------------------------------------------------------------***
-        */
-
         // Saisir et vérifier le numéro de chambre
         printf("Chambre à réserver: ");
         scanf("%d", &uneresa.chambre);
-        while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie))
-        {
+        while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie)) {
             printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
             printf("Chambre à réserver: ");
             scanf("%d", &uneresa.chambre);
@@ -233,9 +220,16 @@ void saisirReservations()
 
         tabresa[i++] = uneresa; // Sauvegarder les données saisies dans le tableau
         a_sauvegarder = 1;      // Activer le flag pour sauvegarder les données
-    }
+
+        // Demander à l'utilisateur s'il souhaite continuer
+        printf("Voulez-vous saisir une autre réservation ? (o/n) : ");
+        scanf(" %c", &continuer); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
+        continuer = tolower(continuer);
+    } while (continuer == 'o');
+
     nbresa = i; // Mettre à jour le nombre des réservations
 }
+
 
 // Fonction pour afficher tout les réservations ou 10 dernieres dans la BD
 void afficherReservations()
