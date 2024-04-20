@@ -1,14 +1,18 @@
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fichiers d'entête
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <time.h>
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constantes
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #define TAILLE_TAB 10000                                   // taille maximale des tables réservervation
 #define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
-#define TAILLE_CHAR 30                                     // pour tout les chaines de type char
+#define TAILLE_CHAR 20                                     // pour tout les chaines de type char
 #define TAILLE_TEL 10                                      // numéro téléphone français
 #define TAILLE_MAIL 40                                     // pour tout les chaines de type mail
 #define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
@@ -16,7 +20,9 @@
 #define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
 #define DB_CLIENTS "liste_clients_generated.txt"           // base de données pour les clients
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Types global
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 struct date // structure d'une date
 {
     int jour;
@@ -44,27 +50,55 @@ struct reservation // structure d'une réservation
     int num_r;       // numéro réservation
 };
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Variables globales
-int nbresa = 0;                         // initialiser le nombre des réservations
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+int nbresa = 0, nbclient = 0;           // initialiser le nombre des réservations et des clients
 struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
-int a_sauvegarder = 0;                  // flag pour l'alerte à sauvegarder
+struct client tabclient[TAILLE_TAB];    // tableau principale des clients
+int a_sauvegarder_reservation = 0;      // flag pour l'alerte à sauvegarder pour les réservations
+int a_sauvegarder_client = 0;           // flag pour l'alerte à sauvegarder pour les clients
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclarations préliminaires des fonctions
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Partie principale
 
 void afficherMenuPrincipal();
+
+// Partie Réservations
+
 void afficherMenuReservation();
 void afficherEnTeteReservations();
 void menuReservation();
 void afficherReservations();
 void saisirReservations();
-void demanderCritereRecherche();
+void demanderCritereRechercheReservations();
 void rechercherReservation(struct reservation resa_a_trouver);
-void sauvegardeReservations();
-void chargementReservations();
 int lanceRecherche(int num_resa_a_rechercher);
 void modifierReservations();
 void supprimerReservations();
+void sauvegardeReservations();
+void chargementReservations();
+
+// Partie Clients
+
+void afficherMenuClient();
+void afficherEnTeteClients();
+void menuClient();
+void afficherClients();
 void saisirClient();
+void demanderCritereRechercheClients();
+void rechercherClient(struct client client_a_trouver);
+int lanceRechercheClient(int code_client_a_rechercher);
+void modifierClient();
+void supprimerClient();
+void sauvegardeClients();
+void chargementClients();
+
+// Autres fonctions utilitaires
+
 bool nomValide(char nom[]);
 bool telValide(char tel[]);
 bool mailValide(char mail[]);
@@ -81,12 +115,15 @@ void stringToDate(char *dateStr, struct date *d);
 void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 int genererNumResa();
+int genererCodeClient();
+void clearBuffer();
 void quitter();
 
 // Programme principale
 int main()
 {
     chargementReservations(); // Charger les réservations depuis la base de données
+    chargementClients();      // Charger les clients depuis la base de données
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -99,6 +136,9 @@ int main()
             break;
         case 2:
             menuRestaurant();
+            break;
+        case 3:
+            menuClient();
             break;
         case 0:
             quitter(); // quitter la programme principale
@@ -116,9 +156,14 @@ void afficherMenuPrincipal()
     printf("\n");
     printf("-1- Gérer les réservations  \n");
     printf("-2- Gérer le restaurant     \n");
+    printf("-3- Gérer les clients       \n");
     printf("-0- Quitter                 \n\n");
     printf("Choisissez une option : ");
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions pour la partie Restaurant
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Fonction pour afficher le menu de gestion des réservations
 void afficherMenuReservation()
@@ -157,7 +202,7 @@ void menuReservation()
             afficherReservations();
             break;
         case 2:
-            demanderCritereRecherche();
+            demanderCritereRechercheReservations();
             break;
         case 3:
             saisirReservations();
@@ -168,10 +213,8 @@ void menuReservation()
         case 5:
             supprimerReservations();
             break;
-        case 6:
-            chargementReservations();
             break;
-        case 7:
+        case 6:
             sauvegardeReservations();
             break;
         case 0:
@@ -186,12 +229,11 @@ void menuReservation()
 void saisirReservations()
 {
     int i = nbresa;
-    char continuer = 'O'; // Variable pour contrôler la continuation de la boucle
+    char reponse[TAILLE_CHAR]; // Variable pour contrôler la continuation de la boucle
+    struct reservation uneresa;
 
     do
     {
-        struct reservation uneresa;
-
         // Saisir et vérifier le numéro du client
         printf("Numéro client: ");
         scanf("%d", &uneresa.num_c);
@@ -233,14 +275,14 @@ void saisirReservations()
         uneresa.num_r = genererNumResa(); // Générer un numéro de réservation unique
         printf(">>> Réservation numéro %d enregistrée\n", uneresa.num_r);
 
-        tabresa[i++] = uneresa; // Sauvegarder les données saisies dans le tableau
-        a_sauvegarder = 1;      // Activer le flag pour sauvegarder les données
+        tabresa[i++] = uneresa;        // Sauvegarder les données saisies dans le tableau
+        a_sauvegarder_reservation = 1; // Activer le flag pour sauvegarder les données
 
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir une autre réservation ? (o/n) : ");
-        scanf(" %c", &continuer); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
-        continuer = toupper(continuer);
-    } while (continuer == 'O');
+        scanf("%s", reponse); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
+        convMaj(reponse);
+    } while (reponse[0] == 'O');
 
     nbresa = i; // Mettre à jour le nombre des réservations
 }
@@ -254,7 +296,7 @@ void afficherReservations()
     }
     else
     {
-        char reponse = 'n';
+        char reponse[TAILLE_CHAR];
         int i, debut = 0;
 
         printf("<!> %d réservations enregistrées dans la base\n", nbresa);
@@ -262,9 +304,9 @@ void afficherReservations()
         if (nbresa > 10)
         {
             printf("Vous voulez afficher les 10 dernières réservations ? (o/n) : ");
-            scanf(" %c", &reponse);
-            reponse = toupper(reponse);
-            if (reponse == 'O')
+            scanf("%s", reponse);
+            convMaj(reponse);
+            if (reponse[0] == 'O')
             {
                 debut = nbresa - 10;
             }
@@ -302,7 +344,7 @@ void sauvegardeReservations()
         fprintf(f1, "%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
     }
     fclose(f1);
-    a_sauvegarder = 0; // désactiver le flag pour sauvegarder les données
+    a_sauvegarder_reservation = 0; // désactiver le flag pour sauvegarder les données
     printf(">>> %d réservations sauvegardées\n", nbresa);
 }
 
@@ -341,8 +383,8 @@ void chargementReservations()
     printf("%d réservations chargées.\n", nbresa);
 }
 
-// Fonction pour demander le critère de recherche au utilisateur
-void demanderCritereRecherche()
+// Fonction pour demander le critère de recherche au utilisateur pour les réservations
+void demanderCritereRechercheReservations()
 {
     struct reservation recherche_resa = {0}; // Initialiser la structure de recherche
     int rechercher_choix = VAL_INI;
@@ -513,7 +555,7 @@ void modifierReservations()
         uneresa.date_entree = new_entree;
         uneresa.date_sortie = new_sortie;
         tabresa[trouve] = uneresa;
-        a_sauvegarder = 1;
+        a_sauvegarder_reservation = 1;
         printf(">>> Réservation numéro %d modifiée\n", num_resa_a_modifier);
     }
 }
@@ -558,70 +600,489 @@ void supprimerReservations()
                 tabresa[i] = tabresa[i + 1];
             }
             nbresa--;
-            a_sauvegarder = 1;
+            a_sauvegarder_reservation = 1;
             printf(">>> Réservation numéro %d supprimée\n", num_resa_a_supprimer);
         }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions pour la partie Client
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Fonction pour afficher le menu de gestion des clients
+void afficherMenuClient()
+{
+    printf("****** Gérer les clients ******\n");
+    printf("\n");
+    printf("-1- Afficher les clients        \n");
+    printf("-2- Rechercher un client         \n");
+    printf("-3- Saisir un nouveau client     \n");
+    printf("-4- Modifier un client           \n");
+    printf("-5- Supprimer un client          \n");
+    printf("-6- Sauvegarde des clients       \n");
+    printf("-0- Revenir au menu précédent    \n");
+    printf("\n");
+    printf("Choisissez une option : ");
+}
+
+// Fonction pour afficher l'en-tête du tableau des clients
+void afficherEnTeteClients()
+{
+    printf("%-6s %-20s %-20s %-9s %-10s %-s\n", "CODE", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
+}
+
+// Fonction pour le menu Clients
+void menuClient()
+{
+    int client_choix = VAL_INI;
+    while (client_choix != 0)
+    {
+        afficherMenuClient();
+        scanf("%d", &client_choix);
+        // Traitement des options
+        switch (client_choix)
+        {
+        case 1:
+            afficherClients();
+            break;
+        case 2:
+            demanderCritereRechercheClients();
+            break;
+        case 3:
+            saisirClient();
+            break;
+        case 4:
+            modifierClient();
+            break;
+        case 5:
+            supprimerClient();
+            break;
+        case 6:
+            sauvegardeClients();
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour afficher tout les clients ou 10 dernieres dans la BD
+void afficherClients()
+{
+    if (nbclient == 0)
+    {
+        printf(">>> Aucun client à afficher\n");
+    }
+    else
+    {
+        char reponse[TAILLE_CHAR];
+        int i, debut = 0;
+
+        printf("<!> %d clients enregistrés dans la base\n", nbclient);
+        printf("\n");
+        if (nbclient > 10)
+        {
+            printf("Vous voulez afficher les 10 derniers clients ? (o/n) : ");
+            scanf(" %s", reponse);
+            convMaj(reponse);
+            if (reponse[0] == 'O')
+            {
+                debut = nbclient - 10;
+            }
+        }
+
+        afficherEnTeteClients();
+        for (i = debut; i < nbclient; i++)
+        {
+            char date_naissance[TAILLE_DATE];
+            dateToString(tabclient[i].date_nais, date_naissance);
+            printf("%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
+            // test
+            printf("%s\n", tabclient[i].tel);
+        }
+        printf("\n");
     }
 }
 
 // Fonction pour la saisir d'un nouveau client
 void saisirClient()
 {
+    int i = nbclient;
     struct client unclient;
-    char reponse = 'O';
+    char reponse[TAILLE_CHAR]; // Variable pour contrôler la continuation de la boucle
 
     // boucle de saisie pour un nouveau client
     do
     {
         // Saisir et vérifier le nom
         printf("Nom : ");
-        scanf("%s", unclient.nom);
-        while (!nomValide(unclient.nom)){
+        scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+        clearBuffer();
+        while (!nomValide(unclient.nom))
+        {
             printf("Nom invalide, veuillez saisir un nom valide : ");
-            scanf("%s", unclient.nom);
+            scanf(" %[^\n]", unclient.nom);
+            clearBuffer();
         }
+        convMaj(unclient.nom);
 
         // Saisir et vérifier le prénom
         printf("Prénom : ");
-        scanf("%s", unclient.prenom);
-        while (!nomValide(unclient.prenom)){
+        scanf(" %[^\n]", unclient.prenom);
+        clearBuffer();
+        while (!nomValide(unclient.prenom))
+        {
             printf("Prénom invalide, veuillez saisir un prénom valide : ");
-            scanf("%s", unclient.prenom);
+            scanf(" %[^\n]", unclient.prenom);
+            clearBuffer();
         }
+        convMaj(unclient.prenom);
 
         // Saisir et vérifier la date de naissance
         printf("Date de naissance (jjmmyyyy) : ");
-        scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee); 
-        while (!dateExiste(unclient.date_nais)){
+        scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
+        while (!dateExiste(unclient.date_nais))
+        {
             printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy) : ");
             scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
         }
 
         // Saisir et vérifier le numéro de téléphone
         printf("Téléphone : ");
-        scanf("%s", unclient.tel);
-        while (!telValide(unclient.tel)){
+        scanf(" %[^\n]", unclient.tel);
+        clearBuffer();
+        while (!telValide(unclient.tel))
+        {
             printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide : ");
-            scanf("%s", unclient.tel);
+            scanf(" %[^\n]", unclient.tel);
+            clearBuffer();
         }
+        printf("Debug - Téléphone capturé: '%s'\n", unclient.tel); // Debug output
 
         // Saisir et vérifier l'adresse mail
         printf("Adresse mail : ");
-        scanf("%s", unclient.mail);
-        while (!mailValide(unclient.mail)){
+        scanf(" %[^\n]", unclient.mail);
+        clearBuffer();
+        while (!mailValide(unclient.mail))
+        {
             printf("Adresse mail invalide, veuillez saisir une adresse mail valide : ");
-            scanf("%s", unclient.mail);
+            scanf(" %[^\n]", unclient.mail);
+            clearBuffer();
         }
+        printf("Debug - Email capturé: '%s'\n", unclient.mail); // Debug output
+
+        printf("Debug - Téléphone capturé: '%s'\n", unclient.tel); // Debug output
+
+        // Générer un code client unique
+        unclient.code = genererCodeClient();
 
         // Afficher les informations saisies
-        printf(">>> Client enregistré : %s %s, né le %s, téléphone : %s, mail : %s\n", unclient.nom, unclient.prenom, unclient.date_nais, unclient.tel, unclient.mail);
+
+        printf(">>> Client numéro %d enregistré.\n", unclient.code);
+
+        tabclient[i++] = unclient; // Sauvegarder les données saisies dans le tableau
+        a_sauvegarder_client = 1;  // Activer le flag pour sauvegarder les données
 
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir un autre client ? (o/n) : ");
-        scanf("%c", reponse);
+        scanf("%s", reponse);
         convMaj(reponse);
-    } while (reponse == 'O');
+    } while (reponse[0] == 'O');
+
+    nbclient = i; // Mettre à jour le nombre des clients
 }
+
+// Fonction pour demander le critère de recherche au utilisateur pour les clients
+void demanderCritereRechercheClients()
+{
+    struct client recherche_client = {0}; // Initialiser la structure de recherche
+    int rechercher_choix = VAL_INI;
+
+    if (nbclient == 0)
+    {
+        printf(">>> Aucun client à afficher\n");
+        return;
+    }
+
+    while (rechercher_choix != 0)
+    {
+        printf("Choisir critère de recherche : \n");
+        printf("-1- Code client\n");
+        printf("-2- Nom\n");
+        printf("-3- Prénom\n");
+        printf("-4- Date de naissance\n");
+        printf("-5- Téléphone\n");
+        printf("-6- Mail\n");
+        printf("-0- Revenir au menu précédent\n\n");
+        printf("Votre choix : ");
+        scanf("%d", &rechercher_choix);
+        switch (rechercher_choix)
+        {
+        case 1:
+            printf("Code client à rechercher : ");
+            scanf("%d", &recherche_client.code);
+            rechercherClient(recherche_client);
+            break;
+        case 2:
+            printf("Nom à rechercher : ");
+            scanf("%s", recherche_client.nom);
+            rechercherClient(recherche_client);
+            break;
+        case 3:
+            printf("Prénom à rechercher : ");
+            scanf("%s", recherche_client.prenom);
+            rechercherClient(recherche_client);
+            break;
+        case 4:
+            printf("Date de naissance à rechercher (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &recherche_client.date_nais.jour, &recherche_client.date_nais.mois, &recherche_client.date_nais.annee);
+            rechercherClient(recherche_client);
+            break;
+        case 5:
+            printf("Téléphone à rechercher : ");
+            scanf("%s", recherche_client.tel);
+            rechercherClient(recherche_client);
+            break;
+        case 6:
+            printf("Mail à rechercher : ");
+            scanf("%s", recherche_client.mail);
+            rechercherClient(recherche_client);
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour rechercher un client par critère de recherche
+void rechercherClient(struct client client_a_trouver)
+{
+    int nbclient_trouve = 0; // Nombre de clients trouvés
+
+    // Afficher l'en-tête seulement s'il y a des clients à afficher
+    if (nbclient > 0)
+    {
+        afficherEnTeteClients();
+    }
+
+    for (int i = 0; i < nbclient; i++)
+    {
+        bool match = false; // Indicateur si le client actuel correspond aux critères
+
+        // Vérifier les critères de recherche
+        if ((client_a_trouver.code > 0 && tabclient[i].code == client_a_trouver.code) ||
+            (strlen(client_a_trouver.nom) > 0 && strcmp(tabclient[i].nom, client_a_trouver.nom) == 0) ||
+            (strlen(client_a_trouver.prenom) > 0 && strcmp(tabclient[i].prenom, client_a_trouver.prenom) == 0) ||
+            (dateEgale(tabclient[i].date_nais, client_a_trouver.date_nais) && client_a_trouver.date_nais.jour > 0) ||
+            (strlen(client_a_trouver.tel) > 0 && strcmp(tabclient[i].tel, client_a_trouver.tel) == 0) ||
+            (strlen(client_a_trouver.mail) > 0 && strcmp(tabclient[i].mail, client_a_trouver.mail) == 0))
+        {
+            match = true;
+        }
+
+        // Si un match est trouvé, afficher le client
+        if (match)
+        {
+            char date_nais[TAILLE_DATE];
+            dateToString(tabclient[i].date_nais, date_nais);
+            printf("%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+            nbclient_trouve++;
+        }
+    }
+
+    if (nbclient_trouve == 0)
+    {
+        printf(">>> Aucun client trouvé correspondant aux critères.\n");
+    }
+}
+
+// Fonction pour rechercher un client par son code
+int lanceRechercheClient(int code_client_a_rechercher)
+{
+    struct client unclient;
+    int i, code_client_trouve = VAL_INI;
+
+    // boucle de recherche
+    for (i = 0; i < nbclient; i++)
+    {
+        unclient = tabclient[i];
+        if (unclient.code == code_client_a_rechercher)
+        {
+            code_client_trouve = i;
+            break;
+        }
+    }
+    return code_client_trouve;
+}
+
+// Fonction pour modifier un client par son code
+void modifierClient()
+{
+    struct client unclient;
+    int code_client_a_modifier, trouve;
+
+    printf("Entrez le code du client à modifier : ");
+    scanf("%d", &code_client_a_modifier);
+
+    trouve = lanceRechercheClient(code_client_a_modifier);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Client code %d non trouvé\n", code_client_a_modifier);
+    }
+    else
+    {
+        unclient = tabclient[trouve];
+        char date_nais[TAILLE_DATE];
+        struct date new_date_nais;
+
+        // Afficher les informations actuelles
+        dateToString(unclient.date_nais, date_nais);
+        printf("Client trouvé : \n");
+        afficherEnTeteClients();
+        printf("%-6d %-20s %-20s %-9s %-10s %-s\n", unclient.code, unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+
+        // Mise à jour de la date de naissance
+        do
+        {
+            printf("Nouvelle date de naissance (jjmmyyyy): ");
+            scanf("%2d%2d%4d", &new_date_nais.jour, &new_date_nais.mois, &new_date_nais.annee);
+        } while (!dateExiste(new_date_nais));
+
+        // Mise à jour des autres informations
+        printf("Nouveau nom : ");
+        scanf("%s", unclient.nom);
+        printf("Nouveau prénom : ");
+        scanf("%s", unclient.prenom);
+        printf("Nouveau téléphone : ");
+        scanf("%s", unclient.tel);
+        printf("Nouveau mail : ");
+        scanf("%s", unclient.mail);
+
+        // Sauvegarde des modifications
+        unclient.date_nais = new_date_nais;
+        tabclient[trouve] = unclient;
+        a_sauvegarder_client = 1;
+        printf(">>> Client code %d modifié\n", code_client_a_modifier);
+    }
+}
+
+// Fonction pour supprimer un client par son code
+void supprimerClient()
+{
+    struct client unclient;
+    int code_client_a_supprimer, trouve;
+
+    printf("Entrez le code du client à supprimer : ");
+    scanf("%d", &code_client_a_supprimer);
+
+    trouve = lanceRechercheClient(code_client_a_supprimer);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Client code %d non trouvé\n", code_client_a_supprimer);
+    }
+    else
+    {
+        unclient = tabclient[trouve];
+        char date_nais[TAILLE_DATE];
+
+        // Afficher les informations actuelles
+        dateToString(unclient.date_nais, date_nais);
+        printf("Client trouvé : \n");
+        afficherEnTeteClients();
+        printf("%-6d %-20s %-20s %-9s %-10s %-s\n", unclient.code, unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+
+        // Demander confirmation pour supprimer le client
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la suppression du client (o/n) : ");
+        scanf("%s", reponse);
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Supprimer le client
+            for (int i = trouve; i < nbclient - 1; i++)
+            {
+                tabclient[i] = tabclient[i + 1];
+            }
+            nbclient--;
+            a_sauvegarder_client = 1;
+            printf(">>> Client code %d supprimé\n", code_client_a_supprimer);
+        }
+    }
+}
+
+// Fonction pour sauvegarder les clients dans la base de données
+void sauvegardeClients()
+{
+    FILE *f1;
+    f1 = fopen(DB_CLIENTS, "a");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données\n");
+        return;
+    }
+    for (int i = 0; i < nbclient; i++) // boucle de sauvegarde
+    {
+        char date_nais[TAILLE_DATE];
+        dateToString(tabclient[i].date_nais, date_nais);
+        fprintf(f1, "%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+    }
+    fclose(f1);
+    a_sauvegarder_client = 0; // désactiver le flag pour sauvegarder les données
+    printf(">>> %d clients sauvegardés\n", nbclient);
+}
+
+// Fonction pour charger les clients depuis la base de données
+void chargementClients()
+{
+    struct client unclient;
+    FILE *f1 = fopen(DB_CLIENTS, "r");
+    char dateNais[TAILLE_DATE];
+    int ret;
+
+    if (f1 == NULL)
+    {
+        printf("Erreur d'ouverture de la base de données.\n");
+        return;
+    }
+
+    while ((ret = fscanf(f1, "%-6d %-20s %-20s %-9s %-10s %-s\n", &unclient.code, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
+    {
+        // Conversion des chaînes de caractères en structures de dates
+        stringToDate(dateNais, &unclient.date_nais);
+
+        if (nbclient < TAILLE_TAB)
+        {
+            tabclient[nbclient++] = unclient;
+        }
+        else
+        {
+            printf("Limite du tableau de clients atteinte.\n");
+            break;
+        }
+    }
+
+    fclose(f1);
+    printf("%d clients chargés.\n", nbclient);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions pour la partie Restaurant
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Fonction pour afficher le menu pour la partie Restaurant
+void menuRestaurant()
+{
+    printf("Fonction en cours de développement");
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions utilitaires
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Fonction pour vérifier si le nom ou prénom d'un client est valide
 bool nomValide(char nom[])
@@ -632,7 +1093,7 @@ bool nomValide(char nom[])
         return false;
     for (i = 0; i < taille; i++)
     {
-        if (!isalpha(nom[i]) && nom[i] != '-')
+        if (!isalpha(nom[i]) && nom[i] != '-' && nom[i] != ' ')
             return false;
     }
     return true;
@@ -658,20 +1119,23 @@ bool mailValide(char mail[])
 {
     int i, taille;
     taille = strlen(mail);
+    int nbat = 0;
+    int nbdot = 0;
+
     if (taille == 0 || taille > TAILLE_MAIL)
         return false;
     for (i = 0; i < taille; i++)
     {
         if (!isalnum(mail[i]) && mail[i] != '@' && mail[i] != '.' && mail[i] != '_')
             return false;
+        if (mail[i] == '@')
+            nbat++;
+        if (mail[i] == '.')
+            nbdot++;
     }
+    if (nbat != 1 || nbdot == 0)
+        return false;
     return true;
-}
-
-// Fonction pour afficher le menu pour la partie Restaurant
-void menuRestaurant()
-{
-    printf("Fonction en cours de développement");
 }
 
 // Fonction pour vérifier si une chambre est disponible pour une période donnée
@@ -697,7 +1161,7 @@ void verifSauvegarde()
 {
     char reponse[TAILLE_CHAR];
 
-    if (a_sauvegarder)
+    if (a_sauvegarder_reservation || a_sauvegarder_client)
     {
         printf("Des données ont été modifiées\n");
         printf("Voulez-vous faire une sauvegarde (o/n) : ");
@@ -705,7 +1169,16 @@ void verifSauvegarde()
         convMaj(reponse);
 
         if (reponse[0] == 'O')
-            sauvegardeReservations();
+        {
+            if (a_sauvegarder_reservation)
+            {
+                sauvegardeReservations();
+            }
+            if (a_sauvegarder_client)
+            {
+                sauvegardeClients();
+            }
+        }
     }
 }
 
@@ -791,6 +1264,21 @@ int genererNumResa()
     }
 
     return annee_actuelle * 10000 + ++num;
+}
+
+// Fonction pour générer un code client unique
+int genererCodeClient()
+{
+    static int code = 1; // Variable statique pour garder le compte entre les appels
+    return code++;
+}
+
+// Fonction pour clear buffer
+void clearBuffer()
+{
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF)
+        ; // Vider le buffer
 }
 
 // Fonciton pour quitter le programme
