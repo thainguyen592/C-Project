@@ -116,7 +116,6 @@ void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 int genererNumResa();
 int genererCodeClient();
-void clearBuffer();
 void quitter();
 
 // Programme principale
@@ -1313,14 +1312,6 @@ int genererCodeClient()
 {
     static int code = 1; // Variable statique pour garder le compte entre les appels
     return code++;
-}
-
-// Fonction pour clear buffer
-void clearBuffer()
-{
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-        ; // Vider le buffer
 }
 
 // Fonciton pour quitter le programme
