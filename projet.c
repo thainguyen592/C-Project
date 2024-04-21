@@ -15,7 +15,7 @@
 #define TAILLE_CHAR 20                                     // pour tout les chaines de type char
 #define TAILLE_TEL 10                                      // numéro téléphone français
 #define TAILLE_MAIL 40                                     // pour tout les chaines de type mail
-#define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
+#define TAILLE_DATE 10                                     // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
 #define DB_CLIENTS "liste_clients_generated.txt"           // base de données pour les clients
