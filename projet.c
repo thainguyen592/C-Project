@@ -14,7 +14,7 @@
 #define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
 #define TAILLE_CHAR 20                                     // pour tout les chaines de type char
 #define TAILLE_TEL 10                                      // numéro téléphone français
-#define TAILLE_MAIL 40                                     // pour tout les chaines de type mail
+#define TAILLE_MAIL 50                                     // pour tout les chaines de type mail
 #define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
@@ -710,7 +710,7 @@ void afficherClients()
         {
             char date_naissance[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_naissance);
-            printf("%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-20s %-20s %-9s %-11s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
             // test
             printf("%s\n", tabclient[i].tel);
         }
@@ -767,12 +767,14 @@ void saisirClient()
         do
         {
             printf("Téléphone : ");
-            scanf("%s", unclient.tel);
+            scanf("%10s", unclient.tel);
             if (!telValide(unclient.tel))
             {
                 printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
             }
         } while (!telValide(unclient.tel));
+
+        printf("Capture output tel: %s\n", unclient.tel);
 
         // Saisir l'adresse mail du client
         do
@@ -784,6 +786,9 @@ void saisirClient()
                 printf("Adresse mail invalide, veuillez saisir une adresse mail valide.\n");
             }
         } while (!mailValide(unclient.mail));
+
+        printf("Capture output tel : %s\n", unclient.tel);
+        printf("Capture output mail: %s\n", unclient.mail);
 
         // Générer un code client unique
         unclient.code = genererCodeClient();
@@ -960,7 +965,7 @@ void modifierClient()
         do
         {
             printf("Nouveau nom : ");
-            scanf(" %[^\n]", unclient.nom);
+            scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
             if (!nomValide(unclient.nom))
             {
                 printf("Nom invalide, veuillez saisir un nom valide.\n");
@@ -992,7 +997,7 @@ void modifierClient()
         do
         {
             printf("Nouveau numéro de téléphone : ");
-            scanf("%s", unclient.tel);
+            scanf(" %[^\n]", unclient.tel);
             if (!telValide(unclient.tel))
             {
                 printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
