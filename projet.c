@@ -13,7 +13,7 @@
 #define TAILLE_TAB 10000                                   // taille maximale des tables réservervation
 #define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
 #define TAILLE_CHAR 20                                     // pour tout les chaines de type char
-#define TAILLE_TEL 10                                      // numéro téléphone français
+#define TAILLE_TEL 16                                      // numéro téléphone (15 max) + caractère de fin de chaine (1)
 #define TAILLE_MAIL 50                                     // pour tout les chaines de type mail
 #define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
@@ -116,6 +116,7 @@ void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 int genererNumResa();
 int genererCodeClient();
+void viderBuffer();
 void quitter();
 
 // Programme principale
@@ -128,7 +129,7 @@ int main()
     {
         afficherMenuPrincipal();
         scanf("%d", &main_choix);
-        fflush(stdin);
+        viderBuffer();
         switch (main_choix)
         {
         case 1:
@@ -195,7 +196,7 @@ void menuReservation()
 
         afficherMenuReservation();
         scanf("%d", &resa_choix);
-        fflush(stdin);
+        viderBuffer();
         // Traitement des options
         switch (resa_choix)
         {
@@ -238,39 +239,47 @@ void saisirReservations()
         // Saisir et vérifier le numéro du client
         printf("Numéro client: ");
         scanf("%d", &uneresa.num_c);
+        viderBuffer();
 
         // Saisir et vérifier la date d'entrée
         printf("Date d'entrée (jjmmyyyy): ");
         scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
+        viderBuffer();
         while (!dateExiste(uneresa.date_entree))
         {
             printf(">>> Date d'entrée invalide. Veuillez saisir une date valide (jjmmyyyy).\n");
             printf("Date d'entrée (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_entree.jour, &uneresa.date_entree.mois, &uneresa.date_entree.annee);
+            viderBuffer();
         }
 
         // Saisir et vérifier la date de sortie
         printf("Date de sortie (jjmmyyyy): ");
         scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
+        viderBuffer();
         while (!dateExiste(uneresa.date_sortie) || !dateSuperieure(uneresa.date_sortie, uneresa.date_entree))
         {
             printf(">>> Date de sortie invalide ou antérieure à la date d'entrée. Veuillez saisir une date valide (jjmmyyyy) supérieure à la date d'entrée.\n");
             printf("Date de sortie (jjmmyyyy): ");
             scanf("%2d%2d%4d", &uneresa.date_sortie.jour, &uneresa.date_sortie.mois, &uneresa.date_sortie.annee);
+            viderBuffer();
         }
 
         // Saisir et vérifier le nombre de personnes
         printf("Nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
+        viderBuffer();
 
         // Saisir et vérifier le numéro de chambre
         printf("Chambre à réserver: ");
         scanf("%d", &uneresa.chambre);
+        viderBuffer();
         while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie))
         {
             printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
             printf("Chambre à réserver: ");
             scanf("%d", &uneresa.chambre);
+            viderBuffer();
         }
 
         uneresa.num_r = genererNumResa(); // Générer un numéro de réservation unique
@@ -282,6 +291,7 @@ void saisirReservations()
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir une autre réservation ? (o/n) : ");
         scanf("%s", reponse); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
+        viderBuffer();
         convMaj(reponse);
     } while (reponse[0] == 'O');
 
@@ -306,6 +316,7 @@ void afficherReservations()
         {
             printf("Vous voulez afficher les 10 dernières réservations ? (o/n) : ");
             scanf("%s", reponse);
+            viderBuffer();
             convMaj(reponse);
             if (reponse[0] == 'O')
             {
@@ -407,32 +418,37 @@ void demanderCritereRechercheReservations()
         printf("-0- Revenir au menu précédent\n\n");
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
-        fflush(stdin);
+        viderBuffer();
         switch (rechercher_choix)
         {
         case 1:
             printf("Numéro de réservation à rechercher : ");
             scanf("%d", &recherche_resa.num_r);
+            viderBuffer();
             rechercherReservation(recherche_resa);
             break;
         case 2:
             printf("Numéro de client à rechercher : ");
             scanf("%d", &recherche_resa.num_c);
+            viderBuffer();
             rechercherReservation(recherche_resa);
             break;
         case 3:
             printf("Date d'entrée à rechercher (jjmmyyyy): ");
             scanf("%2d%2d%4d", &recherche_resa.date_entree.jour, &recherche_resa.date_entree.mois, &recherche_resa.date_entree.annee);
+            viderBuffer();
             rechercherReservation(recherche_resa);
             break;
         case 4:
             printf("Date de sortie à rechercher (jjmmyyyy): ");
             scanf("%2d%2d%4d", &recherche_resa.date_sortie.jour, &recherche_resa.date_sortie.mois, &recherche_resa.date_sortie.annee);
+            viderBuffer();
             rechercherReservation(recherche_resa);
             break;
         case 5:
             printf("Chambre à rechercher : ");
             scanf("%d", &recherche_resa.chambre);
+            viderBuffer();
             rechercherReservation(recherche_resa);
             break;
         case 0:
@@ -513,6 +529,7 @@ void modifierReservations()
 
     printf("Entrez le numéro de la réservation à modifier : ");
     scanf("%d", &num_resa_a_modifier);
+    viderBuffer();
 
     trouve = lanceRecherche(num_resa_a_modifier);
     if (trouve == VAL_INI)
@@ -538,6 +555,7 @@ void modifierReservations()
         {
             printf("Nouvelle date d'entrée (jjmmyyyy): ");
             scanf("%2d%2d%4d", &new_entree.jour, &new_entree.mois, &new_entree.annee);
+            viderBuffer();
         } while (!dateExiste(new_entree));
 
         // Mise à jour de la date de sortie
@@ -545,20 +563,24 @@ void modifierReservations()
         {
             printf("Nouvelle date de sortie (jjmmyyyy): ");
             scanf("%2d%2d%4d", &new_sortie.jour, &new_sortie.mois, &new_sortie.annee);
+            viderBuffer();
         } while (!dateExiste(new_sortie) || !dateSuperieure(new_sortie, new_entree));
 
         // Mise à jour nombre de personnes
         printf("Nouveau nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
+        viderBuffer();
 
         // Mise à jour de la chambre
         printf("Nouvelle chambre à réserver: ");
         scanf("%d", &uneresa.chambre);
+        viderBuffer();
         while (!chambreDisponible(uneresa.chambre, new_entree, new_sortie))
         {
             printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
             printf("Nouvelle chambre à réserver: ");
             scanf("%d", &uneresa.chambre);
+            viderBuffer();
         }
 
         // Sauvegarde des modifications
@@ -578,6 +600,7 @@ void supprimerReservations()
 
     printf("Entrez le numéro de la réservation à supprimer : ");
     scanf("%d", &num_resa_a_supprimer);
+    viderBuffer();
 
     trouve = lanceRecherche(num_resa_a_supprimer);
     if (trouve == VAL_INI)
@@ -601,6 +624,7 @@ void supprimerReservations()
         char reponse[TAILLE_CHAR];
         printf("Confirmez-vous la suppression de la réservation (o/n) : ");
         scanf("%s", reponse);
+        viderBuffer();
         convMaj(reponse);
         if (reponse[0] == 'O')
         {
@@ -639,7 +663,7 @@ void afficherMenuClient()
 // Fonction pour afficher l'en-tête du tableau des clients
 void afficherEnTeteClients()
 {
-    printf("%-6s %-20s %-20s %-9s %-10s %-s\n", "CODE", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
+    printf("%-6s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
 }
 
 // Fonction pour le menu Clients
@@ -650,7 +674,7 @@ void menuClient()
     {
         afficherMenuClient();
         scanf("%d", &client_choix);
-        fflush(stdin);
+        viderBuffer();
         // Traitement des options
         switch (client_choix)
         {
@@ -698,6 +722,7 @@ void afficherClients()
         {
             printf("Vous voulez afficher les 10 derniers clients ? (o/n) : ");
             scanf(" %s", reponse);
+            viderBuffer();
             convMaj(reponse);
             if (reponse[0] == 'O')
             {
@@ -710,9 +735,7 @@ void afficherClients()
         {
             char date_naissance[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_naissance);
-            printf("%-6d %-20s %-20s %-9s %-11s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
-            // test
-            printf("%s\n", tabclient[i].tel);
+            printf("%-6d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
         }
         printf("\n");
     }
@@ -733,6 +756,7 @@ void saisirClient()
         {
             printf("Nom : ");
             scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+            viderBuffer();
             if (!nomValide(unclient.nom))
             {
                 printf("Nom invalide, veuillez saisir un nom valide.\n");
@@ -745,6 +769,7 @@ void saisirClient()
         {
             printf("Prénom : ");
             scanf(" %[^\n]", unclient.prenom);
+            viderBuffer();
             if (!nomValide(unclient.prenom))
             {
                 printf("Prénom invalide, veuillez saisir un prénom valide.\n");
@@ -757,6 +782,7 @@ void saisirClient()
         {
             printf("Date de naissance (jjmmyyyy) : ");
             scanf("%2d%2d%4d", &unclient.date_nais.jour, &unclient.date_nais.mois, &unclient.date_nais.annee);
+            viderBuffer();
             if (!dateExiste(unclient.date_nais))
             {
                 printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy).\n");
@@ -766,29 +792,26 @@ void saisirClient()
         // Saisir le numéro de téléphone du client
         do
         {
-            printf("Téléphone : ");
-            scanf("%10s", unclient.tel);
+            printf("Téléphone (saisis '00' au lieu de '+') : ");
+            scanf("%s", unclient.tel);
+            viderBuffer();
             if (!telValide(unclient.tel))
             {
                 printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
             }
         } while (!telValide(unclient.tel));
 
-        printf("Capture output tel: %s\n", unclient.tel);
-
         // Saisir l'adresse mail du client
         do
         {
             printf("Adresse mail : ");
             scanf("%s", unclient.mail);
+            viderBuffer();
             if (!mailValide(unclient.mail))
             {
                 printf("Adresse mail invalide, veuillez saisir une adresse mail valide.\n");
             }
         } while (!mailValide(unclient.mail));
-
-        printf("Capture output tel : %s\n", unclient.tel);
-        printf("Capture output mail: %s\n", unclient.mail);
 
         // Générer un code client unique
         unclient.code = genererCodeClient();
@@ -803,6 +826,7 @@ void saisirClient()
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir un autre client ? (o/n) : ");
         scanf("%s", reponse);
+        viderBuffer();
         convMaj(reponse);
     } while (reponse[0] == 'O');
 
@@ -833,37 +857,43 @@ void demanderCritereRechercheClients()
         printf("-0- Revenir au menu précédent\n\n");
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
-        fflush(stdin);
+        viderBuffer();
         switch (rechercher_choix)
         {
         case 1:
             printf("Code client à rechercher : ");
             scanf("%d", &recherche_client.code);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 2:
             printf("Nom à rechercher : ");
             scanf("%s", recherche_client.nom);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 3:
             printf("Prénom à rechercher : ");
             scanf("%s", recherche_client.prenom);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 4:
             printf("Date de naissance à rechercher (jjmmyyyy): ");
             scanf("%2d%2d%4d", &recherche_client.date_nais.jour, &recherche_client.date_nais.mois, &recherche_client.date_nais.annee);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 5:
             printf("Téléphone à rechercher : ");
             scanf("%s", recherche_client.tel);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 6:
             printf("Mail à rechercher : ");
             scanf("%s", recherche_client.mail);
+            viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 0:
@@ -905,7 +935,7 @@ void rechercherClient(struct client client_a_trouver)
         {
             char date_nais[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_nais);
-            printf("%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
             nbclient_trouve++;
         }
     }
@@ -943,6 +973,7 @@ void modifierClient()
 
     printf("Entrez le code du client à modifier : ");
     scanf("%d", &code_client_a_modifier);
+    viderBuffer();
 
     trouve = lanceRechercheClient(code_client_a_modifier);
     if (trouve == VAL_INI)
@@ -966,6 +997,7 @@ void modifierClient()
         {
             printf("Nouveau nom : ");
             scanf(" %[^\n]", unclient.nom); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+            viderBuffer();
             if (!nomValide(unclient.nom))
             {
                 printf("Nom invalide, veuillez saisir un nom valide.\n");
@@ -977,6 +1009,7 @@ void modifierClient()
         {
             printf("Nouveau prénom : ");
             scanf(" %[^\n]", unclient.prenom);
+            viderBuffer();
             if (!nomValide(unclient.prenom))
             {
                 printf("Prénom invalide, veuillez saisir un prénom valide.\n");
@@ -988,6 +1021,7 @@ void modifierClient()
         {
             printf("Nouvelle date de naissance (jjmmyyyy) : ");
             scanf("%2d%2d%4d", &new_date_nais.jour, &new_date_nais.mois, &new_date_nais.annee);
+            viderBuffer();
             if (!dateExiste(new_date_nais))
             {
                 printf("Date de naissance invalide, veuillez saisir une date valide (jjmmyyyy).\n");
@@ -997,7 +1031,8 @@ void modifierClient()
         do
         {
             printf("Nouveau numéro de téléphone : ");
-            scanf(" %[^\n]", unclient.tel);
+            scanf("%s", unclient.tel);
+            viderBuffer();
             if (!telValide(unclient.tel))
             {
                 printf("Téléphone invalide, veuillez saisir un numéro de téléphone valide.\n");
@@ -1008,6 +1043,7 @@ void modifierClient()
         {
             printf("Nouvelle adresse mail : ");
             scanf("%s", unclient.mail);
+            viderBuffer();
             if (!mailValide(unclient.mail))
             {
                 printf("Adresse mail invalide, veuillez saisir une adresse mail valide.\n");
@@ -1030,6 +1066,7 @@ void supprimerClient()
 
     printf("Entrez le code du client à supprimer : ");
     scanf("%d", &code_client_a_supprimer);
+    viderBuffer();
 
     trouve = lanceRechercheClient(code_client_a_supprimer);
     if (trouve == VAL_INI)
@@ -1051,6 +1088,7 @@ void supprimerClient()
         char reponse[TAILLE_CHAR];
         printf("Confirmez-vous la suppression du client (o/n) : ");
         scanf("%s", reponse);
+        viderBuffer();
         convMaj(reponse);
         if (reponse[0] == 'O')
         {
@@ -1153,11 +1191,7 @@ bool nomValide(char nom[])
 // Fonction pour vérifier si un numéro de téléphone est valide
 bool telValide(char tel[])
 {
-    int i, taille;
-    taille = strlen(tel);
-    if (taille != TAILLE_TEL)
-        return false;
-    for (i = 0; i < taille; i++)
+    for (int i = 0; i < strlen(tel); i++)
     {
         if (!isdigit(tel[i]))
             return false;
@@ -1217,6 +1251,7 @@ void verifSauvegarde()
         printf("Des données ont été modifiées\n");
         printf("Voulez-vous faire une sauvegarde (o/n) : ");
         scanf("%s", reponse);
+        viderBuffer();
         convMaj(reponse);
 
         if (reponse[0] == 'O')
@@ -1322,6 +1357,13 @@ int genererCodeClient()
 {
     static int code = 1; // Variable statique pour garder le compte entre les appels
     return code++;
+}
+
+void viderBuffer()
+{
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF)
+        ;
 }
 
 // Fonciton pour quitter le programme
