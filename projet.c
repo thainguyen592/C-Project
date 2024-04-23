@@ -58,6 +58,9 @@ struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
 struct client tabclient[TAILLE_TAB];    // tableau principale des clients
 int a_sauvegarder_reservation = 0;      // flag pour l'alerte à sauvegarder pour les réservations
 int a_sauvegarder_client = 0;           // flag pour l'alerte à sauvegarder pour les clients
+int num_resa = 0;                       // numéro de séquence de réservation
+int num_client = 0;                     // numéro de séquence de client
+int annee_system = 0;                   // année du système
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclarations préliminaires des fonctions
@@ -122,8 +125,11 @@ void quitter();
 // Programme principale
 int main()
 {
-    chargementReservations(); // Charger les réservations depuis la base de données
-    chargementClients();      // Charger les clients depuis la base de données
+    chargementReservations();                       // Charger les réservations depuis la base de données
+    num_resa = tabresa[nbresa - 1].num_r;           // Récupérer le dernier numéro de réservation
+    chargementClients();                            // Charger les clients depuis la base de données
+    num_client = tabclient[nbclient - 1].code;      // Récupérer le dernier code client
+    annee_system = obtenirAnneeActuelle();          // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -163,7 +169,7 @@ void afficherMenuPrincipal()
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fonctions pour la partie Restaurant
+// Fonctions pour la partie Reservation
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Fonction pour afficher le menu de gestion des réservations
@@ -618,7 +624,7 @@ void supprimerReservations()
         dateToString(uneresa.date_sortie, date_out);
         printf("Réservation trouvée : \n");
         afficherEnTeteReservations();
-        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", uneresa.num_c, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_r);
+        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", uneresa.num_r, date_in, date_out, uneresa.chambre, uneresa.nombre_pers, uneresa.num_c);
 
         // Demander confirmation pour supprimer la réservation
         char reponse[TAILLE_CHAR];
@@ -1169,6 +1175,19 @@ void menuRestaurant()
     printf("Fonction en cours de développement");
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fonctions utilitaires
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1338,25 +1357,24 @@ int obtenirAnneeActuelle()
 // Fonction pour générer un numéro de réservation unique au format "yyyyxxxx"
 int genererNumResa()
 {
-    static int num = 1;                          // Variable statique pour garder le compte entre les appels
-    static int derniere_annee = 0;               // Variable statique pour suivre l'année lors du dernier appel
-    int annee_actuelle = obtenirAnneeActuelle(); // Obtention de l'année actuelle
-
-    // Vérification si l'année a changé
-    if (annee_actuelle != derniere_annee)
+    int annee_actuel = obtenirAnneeActuelle();
+    if (annee_actuel != annee_system)
     {
-        num = 1;                         // Réinitialisation du compteur si l'année a changé
-        derniere_annee = annee_actuelle; // Mise à jour de derniere_annee à l'année actuelle
+        annee_system = annee_actuel;
+        num_resa = annee_actuel * 10000 + 1;
     }
-
-    return annee_actuelle * 10000 + ++num;
+    else
+    {
+        num_resa+= 1;
+    }
+    return num_resa;
 }
 
 // Fonction pour générer un code client unique
 int genererCodeClient()
 {
-    static int code = 1; // Variable statique pour garder le compte entre les appels
-    return code++;
+    nbclient += 1;
+    return nbclient;
 }
 
 void viderBuffer()
