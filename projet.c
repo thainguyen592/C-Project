@@ -33,6 +33,7 @@ struct date // structure d'une date
 struct client // structure d'un client
 {
     int code;
+    int fidelite;
     char nom[TAILLE_CHAR];
     char prenom[TAILLE_CHAR];
     struct date date_nais;
@@ -50,16 +51,29 @@ struct reservation // structure d'une réservation
     int num_r;       // numéro réservation
 };
 
+struct facture // structure d'une facture
+{
+    int num_f; // numéro facture
+    int num_r; // numéro réservation
+    int montant;
+    struct date date_facture;
+};
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Variables globales
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-int nbresa = 0, nbclient = 0;           // initialiser le nombre des réservations et des clients
+int nbresa = 0;                         // nombre de réservations
+int nbclient = 0;                       // nombre de clients
+int nbfacture = 0;                      // nombre de factures
 struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
 struct client tabclient[TAILLE_TAB];    // tableau principale des clients
+struct facture tabfacture[TAILLE_TAB];  // tableau principale des factures
 int a_sauvegarder_reservation = 0;      // flag pour l'alerte à sauvegarder pour les réservations
 int a_sauvegarder_client = 0;           // flag pour l'alerte à sauvegarder pour les clients
+int a_sauvegarder_facture = 0;          // flag pour l'alerte à sauvegarder pour les factures
 int num_resa = 0;                       // numéro de séquence de réservation
 int num_client = 0;                     // numéro de séquence de client
+int num_facture = 0;                    // numéro de séquence de facture
 int annee_system = 0;                   // année du système
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -119,17 +133,18 @@ void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 int genererNumResa();
 int genererCodeClient();
+char *niveauFideliteToString(int nf);
 void viderBuffer();
 void quitter();
 
 // Programme principale
 int main()
 {
-    chargementReservations();                       // Charger les réservations depuis la base de données
-    num_resa = tabresa[nbresa - 1].num_r;           // Récupérer le dernier numéro de réservation
-    chargementClients();                            // Charger les clients depuis la base de données
-    num_client = tabclient[nbclient - 1].code;      // Récupérer le dernier code client
-    annee_system = obtenirAnneeActuelle();          // Récupérer l'année du système
+    chargementReservations();                  // Charger les réservations depuis la base de données
+    num_resa = tabresa[nbresa - 1].num_r;      // Récupérer le dernier numéro de réservation
+    chargementClients();                       // Charger les clients depuis la base de données
+    num_client = tabclient[nbclient - 1].code; // Récupérer le dernier code client
+    annee_system = obtenirAnneeActuelle();     // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -164,7 +179,8 @@ void afficherMenuPrincipal()
     printf("-1- Gérer les réservations  \n");
     printf("-2- Gérer le restaurant     \n");
     printf("-3- Gérer les clients       \n");
-    printf("-0- Quitter                 \n\n");
+    printf("-4- Facturation             \n");
+    printf("-0- Quitter               \n\n");
     printf("Choisissez une option : ");
 }
 
@@ -669,7 +685,7 @@ void afficherMenuClient()
 // Fonction pour afficher l'en-tête du tableau des clients
 void afficherEnTeteClients()
 {
-    printf("%-6s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
+    printf("%-6s %-8s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NIV_FI", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
 }
 
 // Fonction pour le menu Clients
@@ -741,7 +757,7 @@ void afficherClients()
         {
             char date_naissance[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_naissance);
-            printf("%-6d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-8s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
         }
         printf("\n");
     }
@@ -822,6 +838,9 @@ void saisirClient()
         // Générer un code client unique
         unclient.code = genererCodeClient();
 
+        // Initialiser le niveau de fidélité du client
+        unclient.fidelite = 0;
+
         // Afficher les informations saisies
 
         printf(">>> Client numéro %d enregistré.\n", unclient.code);
@@ -860,6 +879,7 @@ void demanderCritereRechercheClients()
         printf("-4- Date de naissance\n");
         printf("-5- Téléphone\n");
         printf("-6- Mail\n");
+        printf("-7- Niveau fidelité\n");
         printf("-0- Revenir au menu précédent\n\n");
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
@@ -902,6 +922,12 @@ void demanderCritereRechercheClients()
             viderBuffer();
             rechercherClient(recherche_client);
             break;
+        case 7:
+            printf("Niveau de fidelité à rechercher : ");
+            scanf("%d", &recherche_client.fidelite);
+            viderBuffer();
+            rechercherClient(recherche_client);
+            break;
         case 0:
             break;
         default:
@@ -931,7 +957,8 @@ void rechercherClient(struct client client_a_trouver)
             (strlen(client_a_trouver.prenom) > 0 && strcmp(tabclient[i].prenom, client_a_trouver.prenom) == 0) ||
             (dateEgale(tabclient[i].date_nais, client_a_trouver.date_nais) && client_a_trouver.date_nais.jour > 0) ||
             (strlen(client_a_trouver.tel) > 0 && strcmp(tabclient[i].tel, client_a_trouver.tel) == 0) ||
-            (strlen(client_a_trouver.mail) > 0 && strcmp(tabclient[i].mail, client_a_trouver.mail) == 0))
+            (strlen(client_a_trouver.mail) > 0 && strcmp(tabclient[i].mail, client_a_trouver.mail) == 0) ||
+            (client_a_trouver.fidelite == tabclient[i].fidelite))
         {
             match = true;
         }
@@ -941,7 +968,7 @@ void rechercherClient(struct client client_a_trouver)
         {
             char date_nais[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_nais);
-            printf("%-6d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-8s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
             nbclient_trouve++;
         }
     }
@@ -996,7 +1023,7 @@ void modifierClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-20s %-20s %-9s %-10s %-s\n", unclient.code, unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-8s %-20s %-20s %-9s %-10s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // mise à jour des informations
         do
@@ -1022,6 +1049,17 @@ void modifierClient()
             }
         } while (!nomValide(unclient.prenom));
         convMaj(unclient.prenom);
+
+        do
+        {
+            printf("Nouveau niveau de fidélité : ");
+            scanf("%d", &unclient.fidelite);
+            viderBuffer();
+            if (unclient.fidelite < 0 || unclient.fidelite > 4)
+            {
+                printf("Niveau de fidélité invalide, veuillez saisir un niveau de fidélité valide (0 à 4).\n");
+            }
+        } while (unclient.fidelite < 0 || unclient.fidelite > 4);
 
         do
         {
@@ -1088,7 +1126,7 @@ void supprimerClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-20s %-20s %-9s %-10s %-s\n", unclient.code, unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-8s %-20s %-20s %-9s %-10s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // Demander confirmation pour supprimer le client
         char reponse[TAILLE_CHAR];
@@ -1124,7 +1162,7 @@ void sauvegardeClients()
     {
         char date_nais[TAILLE_DATE];
         dateToString(tabclient[i].date_nais, date_nais);
-        fprintf(f1, "%-6d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+        fprintf(f1, "%-6d %-8d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].fidelite, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
     }
     fclose(f1);
     a_sauvegarder_client = 0; // désactiver le flag pour sauvegarder les données
@@ -1145,7 +1183,7 @@ void chargementClients()
         return;
     }
 
-    while ((ret = fscanf(f1, "%6d %20s %20s %9s %10s %s\n", &unclient.code, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
+    while ((ret = fscanf(f1, "%6d %8d %20s %20s %9s %10s %s\n", &unclient.code, &unclient.fidelite, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateNais, &unclient.date_nais);
@@ -1175,18 +1213,101 @@ void menuRestaurant()
     printf("Fonction en cours de développement");
 }
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions pour la Facturation
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+// Fonction pour afficher le menu pour la facturation
+void afficherMenuFacturation()
+{   
+    printf("****** Facturation ******\n\n");
+    printf("-1- Facturer une réservation\n");
+    printf("-2- Afficher les factures\n");
+    printf("-3- Modifier une facture\n");
+    printf("-0- Revenir au menu précédent\n");
+    printf("\n");
+    printf("Choisissez une option : ");
+}
 
+// Fonction pour afficher le menu Facturation
+void menuFacturation()
+{
+    int facturation_choix = VAL_INI;
+    while (facturation_choix != 0)
+    {
+        afficherMenuFacturation();
+        scanf("%d", &facturation_choix);
+        viderBuffer();
+        // Traitement des options
+        switch (facturation_choix)
+        {
+        case 1:
+            facturerReservation();
+            break;
+        case 2:
+            afficherFactures();
+            break;
+        case 3:
+            modifierFacture();
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
 
+// Fonction pour facturer une réservation
+void facturerReservation()
+{
+    struct reservation une_resa;
+    struct facture une_facture;
+    int num_resa_a_facturer, trouve;
 
+    printf("Entrez le numéro de la réservation à facturer : ");
+    scanf("%d", &num_resa_a_facturer);
+    viderBuffer();
 
+    trouve = lanceRecherche(num_resa_a_facturer);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Réservation numéro %d non trouvée\n", num_resa_a_facturer);
+    }
+    else
+    {
+        une_resa = tabresa[trouve];
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
 
+        // Afficher les informations actuelles
+        dateToString(une_resa.date_entree, date_in);
+        dateToString(une_resa.date_sortie, date_out);
+        printf("Réservation trouvée : \n");
+        afficherEnTeteReservations();
+        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", une_resa.num_r, date_in, date_out, une_resa.chambre, une_resa.nombre_pers, une_resa.num_c);
 
+        // Demander confirmation pour facturer la réservation
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la facturation de la réservation (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Générer un numéro de facture unique
+            une_facture.num_f = genererNumFacture();
 
+            // Calculer le montant de la facture
+            une_facture.montant = calculerMontantFacture(une_resa);
 
-
-
-
+            // Sauvegarder la facture
+            tabfacture[nbfacture++] = une_facture;
+            a_sauvegarder_facture = 1;
+            printf(">>> Facture numéro %d générée pour la réservation numéro %d\n", une_facture.num_f, num_resa_a_facturer);
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fonctions utilitaires
@@ -1240,6 +1361,26 @@ bool mailValide(char mail[])
     if (nbat != 1 || nbdot == 0)
         return false;
     return true;
+}
+
+// Fonction pour convertir le niveau de fidélité en chaine de caractères
+char *niveauFideliteToString(int nf)
+{
+    switch (nf)
+    {
+    case 0:
+        return "STARTER";
+    case 1:
+        return "BRONZE";
+    case 2:
+        return "SILVER";
+    case 3:
+        return "GOLD";
+    case 4:
+        return "PLATINUM";
+    default:
+        return "Inconnu";
+    }
 }
 
 // Fonction pour vérifier si une chambre est disponible pour une période donnée
@@ -1365,7 +1506,7 @@ int genererNumResa()
     }
     else
     {
-        num_resa+= 1;
+        num_resa += 1;
     }
     return num_resa;
 }
