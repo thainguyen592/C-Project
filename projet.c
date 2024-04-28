@@ -6,19 +6,24 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <time.h>
+#include <locale.h>
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #define TAILLE_TAB 10000                                   // taille maximale des tables réservervation
+#define TAILLE_PROD 100                                    // taille maximale des produits consommés
+#define TAILLE_DESC 40                                     // taille maximale de la description d'un produit
 #define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
 #define TAILLE_CHAR 20                                     // pour tout les chaines de type char
 #define TAILLE_TEL 16                                      // numéro téléphone (15 max) + caractère de fin de chaine (1)
 #define TAILLE_MAIL 50                                     // pour tout les chaines de type mail
 #define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
 #define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
-#define DB_RESERVATIONS "liste_reservations_generated.txt" // base de données pour les réservations
-#define DB_CLIENTS "liste_clients_generated.txt"           // base de données pour les clients
+#define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
+#define DB_CLIENTS "liste_clients.txt"           // base de données pour les clients
+#define DB_FACTURES "liste_factures.txt"         // base de données pour les factures
+#define DB_PRODUITS "liste_produits.txt"         // base de données pour les produits
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Types global
@@ -32,31 +37,41 @@ struct date // structure d'une date
 
 struct client // structure d'un client
 {
-    int code;
-    int fidelite;
-    char nom[TAILLE_CHAR];
-    char prenom[TAILLE_CHAR];
-    struct date date_nais;
-    char tel[TAILLE_TEL];
-    char mail[TAILLE_MAIL];
+    int code;                 // code client
+    int fidelite;             // niveau de fidélité
+    char nom[TAILLE_CHAR];    // nom
+    char prenom[TAILLE_CHAR]; // prénom
+    struct date date_nais;    // date de naissance
+    char tel[TAILLE_TEL];     // numéro de téléphone
+    char mail[TAILLE_MAIL];   // adresse mail
 };
 
 struct reservation // structure d'une réservation
 {
-    int num_c; // numéro client
-    struct date date_entree;
-    struct date date_sortie;
-    int chambre;     // numéro de chambre
-    int nombre_pers; // nombre de personnes
-    int num_r;       // numéro réservation
+    int num_r;                 // numéro réservation
+    struct date date_entree;   // date d'entrée
+    struct date date_sortie;   // date de sortie
+    int chambre;               // numéro de chambre
+    int nombre_pers;           // nombre de personnes
+    int num_c;                 // numéro client
+    int produits[TAILLE_PROD]; // tableau des produits commandés
 };
 
 struct facture // structure d'une facture
 {
-    int num_f; // numéro facture
-    int num_r; // numéro réservation
-    int montant;
-    struct date date_facture;
+    int num_f;                         // numéro facture
+    int num_r;                         // numéro réservation
+    float montant;                     // montant de la facture
+    int statut;                        // 0: non payée, 1: payée
+    struct date date_facture;          // date de la facture
+    struct date date_paiement_facture; // date de paiement de la facture
+};
+
+struct produit // structure d'un produit
+{
+    int code;               // code produit
+    char desc[TAILLE_CHAR]; // description du produit
+    float prix;             // prix du produit
 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,15 +80,19 @@ struct facture // structure d'une facture
 int nbresa = 0;                         // nombre de réservations
 int nbclient = 0;                       // nombre de clients
 int nbfacture = 0;                      // nombre de factures
+int nbproduit = 0;                      // nombre de produits
 struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
 struct client tabclient[TAILLE_TAB];    // tableau principale des clients
 struct facture tabfacture[TAILLE_TAB];  // tableau principale des factures
+struct produit tabproduit[TAILLE_TAB];  // tableau principale des produits
 int a_sauvegarder_reservation = 0;      // flag pour l'alerte à sauvegarder pour les réservations
 int a_sauvegarder_client = 0;           // flag pour l'alerte à sauvegarder pour les clients
 int a_sauvegarder_facture = 0;          // flag pour l'alerte à sauvegarder pour les factures
+int a_sauvegarder_produit = 0;          // flag pour l'alerte à sauvegarder pour les produits
 int num_resa = 0;                       // numéro de séquence de réservation
 int num_client = 0;                     // numéro de séquence de client
 int num_facture = 0;                    // numéro de séquence de facture
+int num_produit = 0;                    // numéro de séquence de produit
 int annee_system = 0;                   // année du système
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -114,6 +133,30 @@ void supprimerClient();
 void sauvegardeClients();
 void chargementClients();
 
+// Partie Restaurant
+void afficherMenuRestaurant();
+
+// Partie Factures
+void afficherMenuFacturation();
+void menuFacturation();
+void facturerReservation();
+void afficherEnTeteFactures();
+void afficherFactures();
+
+// Partie Produits
+void afficherMenuProduits();
+void menuProduits();
+void afficherProduits();
+void afficherEnTeteProduits();
+void saisirProduit();
+void demanderCritereRechercheProduits();
+void rechercherProduit(struct produit produit_a_trouver);
+int lanceRechercheProduit(int code_produit_a_rechercher);
+void modifierProduit();
+void supprimerProduit();
+void sauvegardeProduits();
+void chargementProduits();
+
 // Autres fonctions utilitaires
 
 bool nomValide(char nom[]);
@@ -131,20 +174,30 @@ void dateToString(struct date d, char *dateStr);
 void stringToDate(char *dateStr, struct date *d);
 void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
+void obtenirDateActuelle(struct date *d);
 int genererNumResa();
 int genererCodeClient();
+int genererNumFacture();
 char *niveauFideliteToString(int nf);
+char *statutFactureToString(int sf);
 void viderBuffer();
 void quitter();
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Programme principale
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 int main()
 {
-    chargementReservations();                  // Charger les réservations depuis la base de données
-    num_resa = tabresa[nbresa - 1].num_r;      // Récupérer le dernier numéro de réservation
-    chargementClients();                       // Charger les clients depuis la base de données
-    num_client = tabclient[nbclient - 1].code; // Récupérer le dernier code client
-    annee_system = obtenirAnneeActuelle();     // Récupérer l'année du système
+    setlocale(LC_ALL, "fr_FR.UTF-8");             // pour afficher les caractères accentués
+    setlocale(LC_ALL, "C");                       // pour afficher . comme séparateur décimal
+    chargementReservations();                     // Charger les réservations depuis la base de données
+    num_resa = tabresa[nbresa - 1].num_r;         // Récupérer le dernier numéro de réservation
+    chargementClients();                          // Charger les clients depuis la base de données
+    num_client = tabclient[nbclient - 1].code;    // Récupérer le dernier code client
+    chargementProduits();                         // Charger les produits depuis la base de données
+    num_produit = tabproduit[nbproduit - 1].code; // Récupérer le dernier code produit
+    annee_system = obtenirAnneeActuelle();        // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -161,6 +214,12 @@ int main()
             break;
         case 3:
             menuClient();
+            break;
+        case 4:
+            menuFacturation();
+            break;
+        case 5:
+            menuProduits();
             break;
         case 0:
             quitter(); // quitter la programme principale
@@ -179,7 +238,8 @@ void afficherMenuPrincipal()
     printf("-1- Gérer les réservations  \n");
     printf("-2- Gérer le restaurant     \n");
     printf("-3- Gérer les clients       \n");
-    printf("-4- Facturation             \n");
+    printf("-4- Gérer la facturation    \n");
+    printf("-5- Gérer les produits      \n");
     printf("-0- Quitter               \n\n");
     printf("Choisissez une option : ");
 }
@@ -236,7 +296,6 @@ void menuReservation()
             break;
         case 5:
             supprimerReservations();
-            break;
             break;
         case 6:
             sauvegardeReservations();
@@ -363,7 +422,7 @@ void afficherReservations()
 void sauvegardeReservations()
 {
     FILE *f1;
-    f1 = fopen(DB_RESERVATIONS, "a");
+    f1 = fopen(DB_RESERVATIONS, "w");
     if (f1 == NULL)
     {
         printf(">>> Erreur d'ouverture de la base de données\n");
@@ -388,7 +447,6 @@ void chargementReservations()
     struct reservation uneresa;
     FILE *f1 = fopen(DB_RESERVATIONS, "r");
     char dateEntree[TAILLE_DATE], dateSortie[TAILLE_DATE];
-    int ret;
 
     if (f1 == NULL)
     {
@@ -396,7 +454,7 @@ void chargementReservations()
         return;
     }
 
-    while ((ret = fscanf(f1, "%9d %9s %9s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c)) == 6)
+    while (fscanf(f1, "%9d %9s %9s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c) == 6)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateEntree, &uneresa.date_entree);
@@ -404,7 +462,8 @@ void chargementReservations()
 
         if (nbresa < TAILLE_TAB)
         {
-            tabresa[nbresa++] = uneresa;
+            tabresa[nbresa] = uneresa;
+            nbresa++;
         }
         else
         {
@@ -669,8 +728,7 @@ void supprimerReservations()
 // Fonction pour afficher le menu de gestion des clients
 void afficherMenuClient()
 {
-    printf("****** Gérer les clients ******\n");
-    printf("\n");
+    printf("****** Gérer les clients ******\n\n");
     printf("-1- Afficher les clients        \n");
     printf("-2- Rechercher un client         \n");
     printf("-3- Saisir un nouveau client     \n");
@@ -685,7 +743,7 @@ void afficherMenuClient()
 // Fonction pour afficher l'en-tête du tableau des clients
 void afficherEnTeteClients()
 {
-    printf("%-6s %-8s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NIV_FI", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
+    printf("%-6s %-9s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NIV_FI", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
 }
 
 // Fonction pour le menu Clients
@@ -757,7 +815,7 @@ void afficherClients()
         {
             char date_naissance[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_naissance);
-            printf("%-6d %-8s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
         }
         printf("\n");
     }
@@ -968,7 +1026,7 @@ void rechercherClient(struct client client_a_trouver)
         {
             char date_nais[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_nais);
-            printf("%-6d %-8s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
             nbclient_trouve++;
         }
     }
@@ -1023,7 +1081,7 @@ void modifierClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-8s %-20s %-20s %-9s %-10s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // mise à jour des informations
         do
@@ -1052,7 +1110,7 @@ void modifierClient()
 
         do
         {
-            printf("Nouveau niveau de fidélité : ");
+            printf("Nouveau niveau de fidélité (0 à 4): ");
             scanf("%d", &unclient.fidelite);
             viderBuffer();
             if (unclient.fidelite < 0 || unclient.fidelite > 4)
@@ -1126,7 +1184,7 @@ void supprimerClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-8s %-20s %-20s %-9s %-10s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // Demander confirmation pour supprimer le client
         char reponse[TAILLE_CHAR];
@@ -1152,7 +1210,7 @@ void supprimerClient()
 void sauvegardeClients()
 {
     FILE *f1;
-    f1 = fopen(DB_CLIENTS, "a");
+    f1 = fopen(DB_CLIENTS, "w");
     if (f1 == NULL)
     {
         printf(">>> Erreur d'ouverture de la base de données\n");
@@ -1160,10 +1218,11 @@ void sauvegardeClients()
     }
     for (int i = 0; i < nbclient; i++) // boucle de sauvegarde
     {
-        char date_nais[TAILLE_DATE];
-        dateToString(tabclient[i].date_nais, date_nais);
-        fprintf(f1, "%-6d %-8d %-20s %-20s %-9s %-10s %-s\n", tabclient[i].code, tabclient[i].fidelite, tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+        char dateNais[TAILLE_DATE];
+        dateToString(tabclient[i].date_nais, dateNais);
+        fprintf(f1, "%-6d %-9d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].fidelite, tabclient[i].nom, tabclient[i].prenom, dateNais, tabclient[i].tel, tabclient[i].mail);
     }
+
     fclose(f1);
     a_sauvegarder_client = 0; // désactiver le flag pour sauvegarder les données
     printf(">>> %d clients sauvegardés\n", nbclient);
@@ -1175,22 +1234,21 @@ void chargementClients()
     struct client unclient;
     FILE *f1 = fopen(DB_CLIENTS, "r");
     char dateNais[TAILLE_DATE];
-    int ret;
 
     if (f1 == NULL)
     {
         printf("Erreur d'ouverture de la base de données.\n");
         return;
     }
-
-    while ((ret = fscanf(f1, "%6d %8d %20s %20s %9s %10s %s\n", &unclient.code, &unclient.fidelite, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail)) == 6)
+    
+    while (fscanf(f1, "%6d %9d %19[^\n] %19[^\n] %9s %16s %s\n", &unclient.code, &unclient.fidelite, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail) == 7)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateNais, &unclient.date_nais);
-
         if (nbclient < TAILLE_TAB)
         {
-            tabclient[nbclient++] = unclient;
+            tabclient[nbclient] = unclient;
+            nbclient++;
         }
         else
         {
@@ -1207,10 +1265,25 @@ void chargementClients()
 // Fonctions pour la partie Restaurant
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// Fonction pour afficher le menu pour la partie Restaurant
+// Fonction pour afficher le menu de gestion du restaurant
+void afficherMenuRestaurant()
+{
+    printf("****** Gérer le restaurant ******\n\n");
+    printf("-1- Afficher le menu du restaurant\n");
+    printf("-2- Afficher les commandes\n");
+    printf("-3- Rechercher une commande\n");
+    printf("-4- Saisir une nouvelle commande\n");
+    printf("-5- Modifier une commande\n");
+    printf("-6- Supprimer une commande\n");
+    printf("-7- Sauvegarde des commandes\n");
+    printf("-0- Revenir au menu précédent\n");
+    printf("\n");
+    printf("Choisissez une option : ");
+}
+
 void menuRestaurant()
 {
-    printf("Fonction en cours de développement");
+    printf("****** Gérer le restaurant ******\n\n");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1219,11 +1292,15 @@ void menuRestaurant()
 
 // Fonction pour afficher le menu pour la facturation
 void afficherMenuFacturation()
-{   
+{
     printf("****** Facturation ******\n\n");
-    printf("-1- Facturer une réservation\n");
-    printf("-2- Afficher les factures\n");
-    printf("-3- Modifier une facture\n");
+    printf("-1- Afficher les factures\n");
+    printf("-2- Rechercher une facture\n");
+    printf("-3- Facturer une réservation\n");
+    printf("-4- Paiement d'une facture\n");
+    printf("-5- Modifier une facture\n");
+    printf("-6- Supprimer une facture\n");
+    printf("-7- Sauvegarde des factures\n");
     printf("-0- Revenir au menu précédent\n");
     printf("\n");
     printf("Choisissez une option : ");
@@ -1242,15 +1319,7 @@ void menuFacturation()
         switch (facturation_choix)
         {
         case 1:
-            facturerReservation();
-            break;
-        case 2:
             afficherFactures();
-            break;
-        case 3:
-            modifierFacture();
-            break;
-        case 0:
             break;
         default:
             printf(">>> Option invalide. Veuillez réessayer.\n");
@@ -1289,7 +1358,7 @@ void facturerReservation()
 
         // Demander confirmation pour facturer la réservation
         char reponse[TAILLE_CHAR];
-        printf("Confirmez-vous la facturation de la réservation (o/n) : ");
+        printf("Confirmez-vous la facturation de la réservation numéro %d (o/n) : ", num_resa_a_facturer);
         scanf("%s", reponse);
         viderBuffer();
         convMaj(reponse);
@@ -1298,8 +1367,19 @@ void facturerReservation()
             // Générer un numéro de facture unique
             une_facture.num_f = genererNumFacture();
 
+            // Enregistrer le numéro de réservation
+            une_facture.num_r = num_resa_a_facturer;
+
             // Calculer le montant de la facture
-            une_facture.montant = calculerMontantFacture(une_resa);
+            // une_facture.montant = calculerMontantFacture(une_resa); // à définir
+            une_facture.montant = 1000; // pour tester, à supprimer
+
+            // Enregistrer la date de facturation
+            obtenirDateActuelle(&une_facture.date_facture);
+
+            // Initialiser la date de paiement de la facture
+            struct date date_paiement = {0, 0, 0};
+            une_facture.date_paiement_facture = date_paiement;
 
             // Sauvegarder la facture
             tabfacture[nbfacture++] = une_facture;
@@ -1307,6 +1387,475 @@ void facturerReservation()
             printf(">>> Facture numéro %d générée pour la réservation numéro %d\n", une_facture.num_f, num_resa_a_facturer);
         }
     }
+}
+
+// Fonction pour afficher l'en-tête du tableau des factures
+void afficherEnTeteFactures()
+{
+    printf("%-6s %-6s %-10s %-10s %-9s %-9s\n", "NUM_F", "NUM_R", "TOTAL-€", "STATUT", "DATE_F", "DATE_P");
+}
+
+// Fonction pour afficher les factures
+void afficherFactures()
+{
+    if (nbfacture == 0)
+    {
+        printf(">>> Aucune facture à afficher\n");
+    }
+    else
+    {
+        char reponse[TAILLE_CHAR];
+        int i, debut = 0;
+
+        printf("<!> %d factures enregistrées dans la base\n", nbfacture);
+        printf("\n");
+        if (nbfacture > 10)
+        {
+            printf("Vous voulez afficher les 10 dernières factures ? (o/n) : ");
+            scanf(" %s", reponse);
+            viderBuffer();
+            convMaj(reponse);
+            if (reponse[0] == 'O')
+            {
+                debut = nbfacture - 10;
+            }
+        }
+
+        afficherEnTeteFactures();
+        for (i = debut; i < nbfacture; i++)
+        {
+            char date_facture[TAILLE_DATE];
+            char date_paiement_facture[TAILLE_DATE];
+            dateToString(tabfacture[i].date_facture, date_facture);
+            dateToString(tabfacture[i].date_paiement_facture, date_paiement_facture);
+            printf("%-6d %-6d %-10.2f %-10s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].montant, statutFactureToString(tabfacture[i].statut), date_facture, date_paiement_facture);
+        }
+        printf("\n");
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fonctions pour gerer les produits
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Fonction pour afficher le menu de gestion des produits
+void afficherMenuProduits()
+{
+    printf("****** Gérer les produits ******\n\n");
+    printf("-1- Afficher les produits\n");
+    printf("-2- Rechercher un produit\n");
+    printf("-3- Saisir un nouveau produit\n");
+    printf("-4- Modifier un produit\n");
+    printf("-5- Supprimer un produit\n");
+    printf("-6- Sauvegarde des produits\n");
+    printf("-0- Revenir au menu précédent\n");
+    printf("\n");
+    printf("Choisissez une option : ");
+}
+
+// Fonction pour le menu Produits
+void menuProduits()
+{
+    int produits_choix = VAL_INI;
+    while (produits_choix != 0)
+    {
+        afficherMenuProduits();
+        scanf("%d", &produits_choix);
+        viderBuffer();
+        // Traitement des options
+        switch (produits_choix)
+        {
+        case 1:
+            afficherProduits();
+            break;
+        case 2:
+            demanderCritereRechercheProduits();
+            break;
+        case 3:
+            saisirProduit();
+            break;
+        case 4:
+            modifierProduit();
+            break;
+        case 5:
+            supprimerProduit();
+            break;
+        case 6:
+            sauvegardeProduits();
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour afficher les produits
+void afficherProduits()
+{
+    if (nbproduit == 0)
+    {
+        printf(">>> Aucun produit à afficher\n");
+    }
+    else
+    {
+        char reponse[TAILLE_CHAR];
+        int i, debut = 0;
+
+        printf("<!> %d produits enregistrés dans la base\n", nbproduit);
+        printf("\n");
+        if (nbproduit > 10)
+        {
+            printf("Vous voulez afficher les 10 derniers produits ? (o/n) : ");
+            scanf(" %s", reponse);
+            viderBuffer();
+            convMaj(reponse);
+            if (reponse[0] == 'O')
+            {
+                debut = nbproduit - 10;
+            }
+        }
+
+        afficherEnTeteProduits();
+        for (i = debut; i < nbproduit; i++)
+        {
+            printf("%-6d %-40s %-10.2f\n", tabproduit[i].code, tabproduit[i].desc, tabproduit[i].prix);
+        }
+        printf("\n");
+    }
+}
+
+// Fonction pour afficher l'en-tête du tableau des produits
+void afficherEnTeteProduits()
+{
+    printf("%-6s %-40s %-10s\n", "CODE", "DESCRIPTION", "PRIX-€");
+}
+
+// Fonction pour saisir un nouveau produit
+void saisirProduit()
+{
+    int i = nbproduit;
+    struct produit unproduit;
+    char reponse[TAILLE_CHAR]; // Variable pour contrôler la continuation de la boucle
+
+    // boucle de saisie pour un nouveau produit
+    do
+    {
+        // Saisir le code du produit
+        do
+        {
+            printf("Code produit: ");
+            scanf("%d", &unproduit.code);
+            viderBuffer();
+            if (unproduit.code <= 0 || unproduit.code > TAILLE_TAB)
+            {
+                printf("Code invalide, veuillez saisir un code valide.\n");
+            }
+        } while (unproduit.code <= 0 || unproduit.code > TAILLE_TAB);
+
+        // Saisir la description du produit
+        do
+        {
+            printf("Description : ");
+            scanf(" %[^\n]", unproduit.desc); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+            viderBuffer();
+            if (strlen(unproduit.desc) == 0 || strlen(unproduit.desc) > TAILLE_DESC)
+            {
+                printf("Description invalide, veuillez saisir une description valide.\n");
+            }
+        } while (strlen(unproduit.desc) == 0 || strlen(unproduit.desc) > TAILLE_DESC);
+        convMaj(unproduit.desc);
+
+        // Saisir le prix du produit
+        do
+        {
+            printf("Prix : ");
+            scanf("%f", &unproduit.prix);
+            viderBuffer();
+            if (unproduit.prix <= 0)
+            {
+                printf("Prix invalide, veuillez saisir un prix valide.\n");
+            }
+        } while (unproduit.prix <= 0);
+
+        // Afficher les informations saisies
+        printf(">>> Produit numéro %d enregistré.\n", unproduit.code);
+        tabproduit[i++] = unproduit; // Sauvegarder les données saisies dans le tableau
+        a_sauvegarder_produit = 1;   // Activer le flag pour sauvegarder les données
+
+        // Demander à l'utilisateur s'il souhaite continuer
+        printf("Voulez-vous saisir un autre produit ? (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+    } while (reponse[0] == 'O');
+
+    nbproduit = i; // Mettre à jour le nombre des produits
+}
+
+// Fonction pour demander le critère de recherche au utilisateur pour les produits
+void demanderCritereRechercheProduits()
+{
+    struct produit recherche_produit = {0}; // Initialiser la structure de recherche
+    int rechercher_choix = VAL_INI;
+
+    if (nbproduit == 0)
+    {
+        printf(">>> Aucun produit à afficher\n");
+        return;
+    }
+
+    while (rechercher_choix != 0)
+    {
+        printf("Choisir critère de recherche : \n");
+        printf("-1- Code produit\n");
+        printf("-2- Description\n");
+        printf("-3- Prix\n");
+        printf("-0- Revenir au menu précédent\n\n");
+        printf("Votre choix : ");
+        scanf("%d", &rechercher_choix);
+        viderBuffer();
+        switch (rechercher_choix)
+        {
+        case 1:
+            printf("Code produit à rechercher : ");
+            scanf("%d", &recherche_produit.code);
+            rechercherProduit(recherche_produit);
+            break;
+        case 2:
+            printf("Description à rechercher : ");
+            scanf("%s", recherche_produit.desc);
+            rechercherProduit(recherche_produit);
+            break;
+        case 3:
+            printf("Prix à rechercher : ");
+            scanf("%f", &recherche_produit.prix);
+            rechercherProduit(recherche_produit);
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour rechercher un produit par critère de recherche
+void rechercherProduit(struct produit produit_a_trouver)
+{
+    int nbproduit_trouve = 0; // Nombre de produits trouvés
+
+    // Afficher l'en-tête seulement s'il y a des produits à afficher
+    if (nbproduit > 0)
+    {
+        afficherEnTeteProduits();
+    }
+
+    for (int i = 0; i < nbproduit; i++)
+    {
+        bool match = false; // Indicateur si le produit actuel correspond aux critères
+
+        // Vérifier les critères de recherche
+        if ((produit_a_trouver.code > 0 && tabproduit[i].code == produit_a_trouver.code) ||
+            (strlen(produit_a_trouver.desc) > 0 && strcmp(tabproduit[i].desc, produit_a_trouver.desc) == 0) ||
+            (produit_a_trouver.prix > 0 && tabproduit[i].prix == produit_a_trouver.prix))
+        {
+            match = true;
+        }
+
+        // Si un match est trouvé, afficher le produit
+        if (match)
+        {
+            printf("%-6d %-40s %-10.2f\n", tabproduit[i].code, tabproduit[i].desc, tabproduit[i].prix);
+            nbproduit_trouve++;
+        }
+    }
+
+    if (nbproduit_trouve == 0)
+    {
+        printf(">>> Aucun produit trouvé correspondant aux critères.\n");
+    }
+}
+
+// Fonction pour modifier un produit par son code
+void modifierProduit()
+{
+    struct produit unproduit;
+    int code_produit_a_modifier, trouve;
+
+    printf("Entrez le code du produit à modifier : ");
+    scanf("%d", &code_produit_a_modifier);
+    viderBuffer();
+
+    trouve = lanceRechercheProduit(code_produit_a_modifier);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Produit code %d non trouvé\n", code_produit_a_modifier);
+    }
+    else
+    {
+        unproduit = tabproduit[trouve];
+
+        // Afficher les informations actuelles
+        printf("Produit trouvé : \n");
+        afficherEnTeteProduits();
+        printf("%-6d %-40s %-10.2f\n", unproduit.code, unproduit.desc, unproduit.prix);
+
+        // mise à jour des informations
+        // Saisir le nouveau code
+        do
+        {
+            printf("Nouveau code produit : ");
+            scanf("%d", &unproduit.code);
+            viderBuffer();
+            if (unproduit.code <= 0 || unproduit.code > TAILLE_TAB)
+            {
+                printf("Code invalide, veuillez saisir un code valide.\n");
+            }
+        } while (unproduit.code <= 0 || unproduit.code > TAILLE_TAB);
+        // Saisir la nouvelle description
+        do
+        {
+            printf("Nouvelle description : ");
+            scanf(" %[^\n]", unproduit.desc); // %[^\n] permet de lire une chaîne de caractères avec des espaces
+            viderBuffer();
+            if (strlen(unproduit.desc) == 0 || strlen(unproduit.desc) > TAILLE_DESC)
+            {
+                printf("Description invalide, veuillez saisir une description valide.\n");
+            }
+        } while (strlen(unproduit.desc) == 0 || strlen(unproduit.desc) > TAILLE_DESC);
+        convMaj(unproduit.desc);
+        // Saisir le nouveau prix
+        do
+        {
+            printf("Nouveau prix : ");
+            scanf("%f", &unproduit.prix);
+            viderBuffer();
+            if (unproduit.prix <= 0)
+            {
+                printf("Prix invalide, veuillez saisir un prix valide.\n");
+            }
+        } while (unproduit.prix <= 0);
+
+        // Sauvegarde des modifications
+        tabproduit[trouve] = unproduit;
+        a_sauvegarder_produit = 1;
+        printf(">>> Produit code %d modifié\n", code_produit_a_modifier);
+    }
+}
+
+// Fonction pour supprimer un produit par son code
+void supprimerProduit()
+{
+    struct produit unproduit;
+    int code_produit_a_supprimer, trouve;
+
+    printf("Entrez le code du produit à supprimer : ");
+    scanf("%d", &code_produit_a_supprimer);
+    viderBuffer();
+
+    trouve = lanceRechercheProduit(code_produit_a_supprimer);
+    if (trouve == VAL_INI)
+    {
+        printf(">>> Produit code %d non trouvé\n", code_produit_a_supprimer);
+    }
+    else
+    {
+        unproduit = tabproduit[trouve];
+
+        // Afficher les informations actuelles
+        printf("Produit trouvé : \n");
+        afficherEnTeteProduits();
+        printf("%-6d %-40s %-10.2f\n", unproduit.code, unproduit.desc, unproduit.prix);
+
+        // Demander confirmation pour supprimer le produit
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la suppression du produit (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Supprimer le produit
+            for (int i = trouve; i < nbproduit - 1; i++)
+            {
+                tabproduit[i] = tabproduit[i + 1];
+            }
+            nbproduit--;
+            a_sauvegarder_produit = 1;
+            printf(">>> Produit code %d supprimé\n", code_produit_a_supprimer);
+        }
+    }
+}
+
+// Fonction pour sauvegarder les produits dans la base de données
+void sauvegardeProduits()
+{
+    FILE *f1;
+    f1 = fopen(DB_PRODUITS, "w");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données\n");
+        return;
+    }
+    for (int i = 0; i < nbproduit; i++) // boucle de sauvegarde
+    {
+        fprintf(f1, "%-6d %-40s %-10.2f\n", tabproduit[i].code, tabproduit[i].desc, tabproduit[i].prix);
+    }
+    fclose(f1);
+    a_sauvegarder_produit = 0; // désactiver le flag pour sauvegarder les données
+    printf(">>> %d produits sauvegardés\n", nbproduit);
+}
+
+// Fonction pour charger les produits depuis la base de données
+void chargementProduits()
+{
+    struct produit unproduit;
+    FILE *f1 = fopen(DB_PRODUITS, "r");
+    int ret;
+
+    if (f1 == NULL)
+    {
+        printf("Erreur d'ouverture de la base de données.\n");
+        return;
+    }
+
+    while ((ret = fscanf(f1, "%6d %40s %10f\n", &unproduit.code, unproduit.desc, &unproduit.prix)) == 3)
+    {
+        if (nbproduit < TAILLE_TAB)
+        {
+            tabproduit[nbproduit] = unproduit;
+            nbproduit++;
+        }
+        else
+        {
+            printf("Limite du tableau de produits atteinte.\n");
+            break;
+        }
+    }
+
+    fclose(f1);
+    printf("%d produits chargés.\n", nbproduit);
+}
+
+// Fonction pour rechercher un produit par son code
+int lanceRechercheProduit(int code_produit_a_rechercher)
+{
+    struct produit unproduit;
+    int i, code_produit_trouve = VAL_INI;
+
+    // boucle de recherche
+    for (i = 0; i < nbproduit; i++)
+    {
+        unproduit = tabproduit[i];
+        if (unproduit.code == code_produit_a_rechercher)
+        {
+            code_produit_trouve = i;
+            break;
+        }
+    }
+    return code_produit_trouve;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1383,6 +1932,20 @@ char *niveauFideliteToString(int nf)
     }
 }
 
+// Fonction pour convertir le staut de la facture en chaine de caractères
+char *statutFactureToString(int sf)
+{
+    switch (sf)
+    {
+    case 0:
+        return "NON PAYEE";
+    case 1:
+        return "PAYEE";
+    default:
+        return "Inconnu";
+    }
+}
+
 // Fonction pour vérifier si une chambre est disponible pour une période donnée
 bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie)
 {
@@ -1401,7 +1964,7 @@ bool chambreDisponible(int chambre, struct date date_entree, struct date date_so
     return true;
 }
 
-// Fonction pour vérifier si il y a des données à sauvegarder, déclencher par le flag
+// Fonction pour vérifier s'il y a des données à sauvegarder, déclencher par le flag
 void verifSauvegarde()
 {
     char reponse[TAILLE_CHAR];
@@ -1423,6 +1986,10 @@ void verifSauvegarde()
             if (a_sauvegarder_client)
             {
                 sauvegardeClients();
+            }
+            if (a_sauvegarder_produit)
+            {
+                sauvegardeProduits();
             }
         }
     }
@@ -1495,6 +2062,16 @@ int obtenirAnneeActuelle()
     return tm.tm_year + 1900;
 }
 
+// Fonction pour obtenir la date actuelle
+void obtenirDateActuelle(struct date *d)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    d->jour = tm.tm_mday;
+    d->mois = tm.tm_mon + 1;
+    d->annee = tm.tm_year + 1900;
+}
+
 // Fonction pour générer un numéro de réservation unique au format "yyyyxxxx"
 int genererNumResa()
 {
@@ -1516,6 +2093,13 @@ int genererCodeClient()
 {
     nbclient += 1;
     return nbclient;
+}
+
+// Fonction pour générer un numéro de facture unique
+int genererNumFacture()
+{
+    nbfacture += 1;
+    return nbfacture;
 }
 
 void viderBuffer()
