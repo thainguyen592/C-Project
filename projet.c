@@ -134,6 +134,8 @@ void modifierReservations();
 void supprimerReservations();
 void sauvegardeReservations();
 void chargementReservations();
+void genererPC(int idx_resa);
+void nettoyerPC(int idx_resa);
 
 // Partie Clients
 
@@ -171,6 +173,7 @@ void afficherFactures();
 void demanderCritereRechercheFacture();
 void rechercherFacture(struct facture facture_a_trouver);
 int lanceRechercheFacture(int num_facture_a_rechercher);
+int lanceRechercheFactureParReservation(int num_reservation_a_rechercher);
 void modifierFacture();
 void supprimerFacture();
 void sauvegardeFactures();
@@ -195,10 +198,10 @@ void chargementProduits();
 bool nomValide(char nom[]);
 bool telValide(char tel[]);
 bool mailValide(char mail[]);
-void menuPC();
 void convMaj(char chaine[]);
 void verifSauvegarde();
 bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie);
+int codeProduitChambre(int chambre);
 bool bissextile(int annee);
 bool dateExiste(struct date d);
 bool dateSuperieure(struct date d1, struct date d2);
@@ -209,6 +212,7 @@ void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 void obtenirDateActuelle(struct date *d);
 void obtenirDateDuJour(char *dateStr);
+int nbJoursEntreDates(struct date d1, struct date d2);
 int genererNumResa();
 int genererCodeClient();
 int genererNumFacture();
@@ -404,9 +408,10 @@ void saisirReservations()
         uneresa.num_r = genererNumResa();
         printf(">>> Réservation numéro %d enregistrée\n", uneresa.num_r);
 
-        tabresa[i++] = uneresa;        // Sauvegarder les données saisies dans le tableau
+        tabresa[i] = uneresa;          // Sauvegarder les données saisies dans le tableau
+        genererPC(i);                  // Générer les produits commandés pour la réservation
         a_sauvegarder_reservation = 1; // Activer le flag pour sauvegarder les données
-
+        i++;                           // Incrémenter le compteur des réservations
         // Demander à l'utilisateur s'il souhaite continuer
         printf("Voulez-vous saisir une autre réservation ? (o/n) : ");
         scanf("%s", reponse); // L'espace avant %c permet de sauter les blancs comme les retours à la ligne
@@ -648,6 +653,8 @@ void modifierReservations()
         uneresa.date_entree = new_entree;
         uneresa.date_sortie = new_sortie;
         tabresa[trouve] = uneresa;
+        nettoyerPC(trouve);                 // Nettoyer les produits commandés générés automatiquement précédemment
+        genererPC(trouve);                  // Générer les produits commandés pour la réservation
         a_sauvegarder_reservation = 1;
         printf(">>> Réservation numéro %d modifiée\n", num_resa_a_modifier);
     }
@@ -689,6 +696,8 @@ void supprimerReservations()
         convMaj(reponse);
         if (reponse[0] == 'O')
         {
+            // Nettoyer les produits commandés générés automatiquement précédemment
+            nettoyerPC(trouve);
             // Supprimer la réservation
             for (int i = trouve; i < nbresa - 1; i++)
             {
@@ -757,6 +766,46 @@ void chargementReservations()
 
     fclose(f1);
     printf("%d réservations chargées.\n", nbresa);
+}
+
+// Fonction pour ajouter automatiquement les produit commandés pour une réservation
+void genererPC(int idx_resa)
+{
+    int i = nbpc;
+    struct produit_commande unepc;
+
+    int nbjours = nbJoursEntreDates(tabresa[idx_resa].date_entree, tabresa[idx_resa].date_sortie);
+    unepc.num_r = tabresa[idx_resa].num_r;
+    unepc.code = codeProduitChambre(tabresa[idx_resa].chambre);
+    unepc.qte = nbjours;
+
+    tabpc[i++] = unepc;        // Sauvegarder les données saisies dans le tableau
+    a_sauvegarder_pc = 1; // Activer le flag pour sauvegarder les données
+
+    nbpc = i; // Mettre à jour le nombre des réservations
+}
+
+// Fonction pour "nettoyer" les produits commandés générés automatiquement pour une réservation
+void nettoyerPC(int idx_resa)
+{
+    int i, j;
+    for (i = 0; i < nbpc; i++)
+    {
+        if (tabpc[i].num_r == tabresa[idx_resa].num_r)
+        {
+            for (j = i; j < nbpc - 1; j++)
+            {
+                tabpc[j] = tabpc[j + 1]; // Décaler les produits commandés
+            }
+            nbpc--; // Décrémenter le nombre de produits commandés
+            if (nbpc > 0) {
+                tabpc[nbpc].num_r = 0;
+                tabpc[nbpc].code = 0;
+                tabpc[nbpc].qte = 0;
+            }
+            i--; // Décrémenter le compteur pour rester sur la même position
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1311,6 +1360,7 @@ void afficherMenuPC()
     printf("-3- Ajouter les produits\n");
     printf("-4- Modifier les produits\n");
     printf("-5- Supprimer les produits\n");
+    printf("-6- Sauvegarde des produits\n");
     printf("-0- Revenir au menu précédent\n");
     printf("\n");
     printf("Choisissez une option : ");
@@ -1364,6 +1414,9 @@ void menuPC()
             break;
         case 5:
             supprimerPC(trouve);
+            break;
+        case 6:
+            sauvegardePC();
             break;
         case 0:
             break;
@@ -1599,7 +1652,7 @@ void afficherMenuFacturation()
     printf("-1- Afficher les factures\n");
     printf("-2- Rechercher une facture\n");
     printf("-3- Facturer une réservation\n");
-    printf("-4- Modifier une facture\n");
+    printf("-4- Paiement une facture\n");
     printf("-5- Supprimer une facture\n");
     printf("-6- Sauvegarde des factures\n");
     printf("-0- Revenir au menu précédent\n");
@@ -1654,9 +1707,14 @@ void facturerReservation()
     scanf("%d", &num_r);
     viderBuffer();
     int idx_resa = lanceRecherche(num_r);
+    int idx_facture = lanceRechercheFactureParReservation(num_r);
     if (idx_resa == VAL_INI)
     {
         printf(">>> Réservation numéro %d non trouvée\n", num_r);
+    }
+    else if (idx_facture != VAL_INI)
+    {
+        printf(">>> Réservation numéro %d déjà facturée\n", num_r);
     }
     else
     {
@@ -1700,6 +1758,7 @@ void facturerReservation()
             obtenirDateActuelle(&une_facture.date_fact);
             struct date date_paiement = {0, 0, 0};
             une_facture.date_paiement = date_paiement;
+            une_facture.statut = 0; // Statut de la facture : non payée
             tabfacture[i++] = une_facture;
         }
 
@@ -1737,13 +1796,28 @@ void afficherEnTeteFactures()
     printf("%-9s %-9s %-9s %-9s %-9s %-9s\n", "NUM_F", "NUM_R", "TOTAL", "D.FACT", "D.PAIE", "STATUT");
 }
 
-// Fonction pour rechercher une facture par son numéro
+// Fonction pour rechercher une facture par son numéro de facture
 int lanceRechercheFacture(int num_facture_a_rechercher)
 {
     int idx_facture = VAL_INI;
     for (int i = 0; i < nbfacture; i++)
     {
         if (tabfacture[i].num_f == num_facture_a_rechercher)
+        {
+            idx_facture = i;
+            break;
+        }
+    }
+    return idx_facture;
+}
+
+// Fonction pour rechercher une facture par son numéro de réservation
+int lanceRechercheFactureParReservation(int num_reservation_a_rechercher)
+{
+    int idx_facture = VAL_INI;
+    for (int i = 0; i < nbfacture; i++)
+    {
+        if (tabfacture[i].num_r == num_reservation_a_rechercher)
         {
             idx_facture = i;
             break;
@@ -1868,7 +1942,7 @@ void rechercherFacture(struct facture facture_a_trouver)
     }
 }
 
-// Fonction pour modifier une facture
+// Fonction pour enregistrer la date de paiement d'une facture
 void modifierFacture()
 {
     int num_facture;
@@ -1894,18 +1968,19 @@ void modifierFacture()
 
         // Demander confirmation pour modifier la facture
         char reponse[TAILLE_CHAR];
-        printf("Confirmez-vous la modification de la facture (o/n) : ");
+        printf("Confirmez-vous le paiement de la facture (o/n) : ");
         scanf("%s", reponse);
         viderBuffer();
         convMaj(reponse);
         if (reponse[0] == 'O')
         {
             // Modifier la facture
-            printf("Entrez le nouveau date de paiement de la facture : ");
+            printf("Entrez la date de paiement de la facture : ");
             scanf("%2d%2d%4d", &tabfacture[idx_facture].date_paiement.jour, &tabfacture[idx_facture].date_paiement.mois, &tabfacture[idx_facture].date_paiement.annee);
             viderBuffer();
+            tabfacture[idx_facture].statut = 1; // Marquer la facture comme payée
             a_sauvegarder_facture = 1;
-            printf(">>> Facture numéro %d modifiée\n", num_facture);
+            printf(">>> Facture numéro %d encaissé\n", num_facture);
         }
     }
 }
@@ -2510,7 +2585,7 @@ char *niveauFideliteToString(int nf)
     }
 }
 
-// Fonction pour convertir le staut de la facture en chaine de caractères
+// Fonction pour convertir le statut de la facture en chaine de caractères
 char *statutFactureToString(int sf)
 {
     switch (sf)
@@ -2541,6 +2616,18 @@ bool chambreDisponible(int chambre, struct date date_entree, struct date date_so
     return true; // Chambre disponible
 }
 
+// Fonction pour obtenir le code produit pour une chambre donnée
+int codeProduitChambre(int chambre)
+{
+    if (chambre >= 101 && chambre <= 110) // Chambre standard
+        return 101;
+    if (chambre >= 201 && chambre <= 210) // Chambre supérieure
+        return 102;
+    if (chambre >= 301 && chambre <= 310) // Suite junior
+        return 103;
+    return 0;
+}
+
 // Fonction pour vérifier s'il y a des données à sauvegarder, déclencher par le flag
 void verifSauvegarde()
 {
@@ -2567,6 +2654,14 @@ void verifSauvegarde()
             if (a_sauvegarder_produit)
             {
                 sauvegardeProduits();
+            }
+            if (a_sauvegarder_pc)
+            {
+                sauvegardePC();
+            }
+            if (a_sauvegarder_facture)
+            {
+                sauvegardeFactures();
             }
         }
     }
@@ -2599,6 +2694,39 @@ bool dateExiste(struct date d)
     if (d.mois == 2 && bissextile(d.annee))
         jours_par_mois[1] = 29;
     return d.jour <= jours_par_mois[d.mois - 1];
+}
+
+// Fonction pour calculer le nombre de jours entre deux dates
+int nbJoursEntreDates(struct date d1, struct date d2)
+{
+    int nbjours = 0;
+    int jours_par_mois[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    while (!dateEgale(d1, d2))
+    {
+        nbjours++;
+        d1.jour++;
+        if (d1.mois == 2 && bissextile(d1.annee))
+        {
+            jours_par_mois[1] = 29; // Set February to 29 days for leap years
+        }
+        else
+        {
+            jours_par_mois[1] = 28; // Reset February back to 28 days for non-leap years
+        }
+
+        if (d1.jour > jours_par_mois[d1.mois - 1])
+        {
+            d1.jour = 1;
+            d1.mois++;
+            if (d1.mois > 12)
+            {
+                d1.mois = 1;
+                d1.annee++;
+            }
+        }
+    }
+    return nbjours;
 }
 
 // Fonction pour vérifier si une date est supérieure à une autre, retourne true si d1 > d2
