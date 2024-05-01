@@ -1622,6 +1622,23 @@ void menuFacturation()
         case 1:
             afficherFactures();
             break;
+        case 2:
+            demanderCritereRechercheFacture();
+            break;
+        case 3:
+            facturerReservation();
+            break;
+        case 4:
+            modifierFacture();
+            break;
+        case 5:
+            supprimerFacture();
+            break;
+        case 6:
+            sauvegardeFactures();
+            break;
+        case 0:
+            break;
         default:
             printf(">>> Option invalide. Veuillez réessayer.\n");
         }
