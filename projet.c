@@ -11,15 +11,15 @@
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-#define TAILLE_TAB 10000                                   // taille maximale des tables réservervation
-#define TAILLE_PROD 100                                    // taille maximale des produits consommés
-#define TAILLE_DESC 40                                     // taille maximale de la description d'un produit
-#define TAILLE_NUM_RESA 8                                  // taille maximale du numéro de réservation
-#define TAILLE_CHAR 20                                     // pour tout les chaines de type char
-#define TAILLE_TEL 16                                      // numéro téléphone (15 max) + caractère de fin de chaine (1)
-#define TAILLE_MAIL 50                                     // pour tout les chaines de type mail
-#define TAILLE_DATE 9                                      // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
-#define VAL_INI -1                                         // valeur initiale pour entrer dans le boucle
+#define TAILLE_TAB 10000                         // taille maximale des tables réservervation
+#define TAILLE_PROD 100                          // taille maximale des produits
+#define TAILLE_DESC 40                           // taille maximale de la description d'un produit
+#define TAILLE_NUM_RESA 8                        // taille maximale du numéro de réservation
+#define TAILLE_CHAR 20                           // pour tout les chaines de type char
+#define TAILLE_TEL 16                            // numéro téléphone (15 max) + caractère de fin de chaine (1)
+#define TAILLE_MAIL 50                           // pour tout les chaines de type mail
+#define TAILLE_DATE 9                            // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
+#define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
 #define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
 #define DB_CLIENTS "liste_clients.txt"           // base de données pour les clients
 #define DB_FACTURES "liste_factures.txt"         // base de données pour les factures
@@ -48,30 +48,36 @@ struct client // structure d'un client
 
 struct reservation // structure d'une réservation
 {
-    int num_r;                 // numéro réservation
-    struct date date_entree;   // date d'entrée
-    struct date date_sortie;   // date de sortie
-    int chambre;               // numéro de chambre
-    int nombre_pers;           // nombre de personnes
-    int num_c;                 // numéro client
-    int produits[TAILLE_PROD]; // tableau des produits commandés
+    int num_r;               // numéro réservation
+    struct date date_entree; // date d'entrée
+    struct date date_sortie; // date de sortie
+    int chambre;             // numéro de chambre
+    int nombre_pers;         // nombre de personnes
+    int num_c;               // numéro client
+};
+
+struct produit_commande // structure des produits commandés
+{
+    int num_r; // numéro réservation
+    int code;  // code produit
+    int qte;   // quantité commandée
 };
 
 struct facture // structure d'une facture
 {
-    int num_f;                         // numéro facture
-    int num_r;                         // numéro réservation
-    float montant;                     // montant de la facture
-    int statut;                        // 0: non payée, 1: payée
-    struct date date_facture;          // date de la facture
-    struct date date_paiement_facture; // date de paiement de la facture
+    int num_f;                 // numéro facture
+    int num_r;                 // numéro réservation
+    float total;               // montant de la facture
+    struct date date_fact;     // date de la facture
+    struct date date_paiement; // date de paiement de la facture
+    int statut;                // 0: non payée, 1: payée
 };
 
 struct produit // structure d'un produit
 {
     int code;               // code produit
-    char desc[TAILLE_CHAR]; // description du produit
-    float prix;             // prix du produit
+    char desc[TAILLE_DESC]; // description du produit
+    float prix;             // prix du produitÒ
 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -236,7 +242,7 @@ void afficherMenuPrincipal()
     printf("****** Menu Principal ******\n");
     printf("\n");
     printf("-1- Gérer les réservations  \n");
-    printf("-2- Gérer le restaurant     \n");
+    printf("-2- Gérer le restaurant & services\n");
     printf("-3- Gérer les clients       \n");
     printf("-4- Gérer la facturation    \n");
     printf("-5- Gérer les produits      \n");
@@ -1240,7 +1246,7 @@ void chargementClients()
         printf("Erreur d'ouverture de la base de données.\n");
         return;
     }
-    
+
     while (fscanf(f1, "%6d %9d %19[^\n] %19[^\n] %9s %16s %s\n", &unclient.code, &unclient.fidelite, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail) == 7)
     {
         // Conversion des chaînes de caractères en structures de dates
@@ -1262,28 +1268,73 @@ void chargementClients()
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fonctions pour la partie Restaurant
+// Fonctions pour la partie Restaurant & Services
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// Fonction pour afficher le menu de gestion du restaurant
+// Fonction pour afficher le menu de gestion du restaurant & services
 void afficherMenuRestaurant()
 {
-    printf("****** Gérer le restaurant ******\n\n");
-    printf("-1- Afficher le menu du restaurant\n");
-    printf("-2- Afficher les commandes\n");
-    printf("-3- Rechercher une commande\n");
-    printf("-4- Saisir une nouvelle commande\n");
-    printf("-5- Modifier une commande\n");
-    printf("-6- Supprimer une commande\n");
-    printf("-7- Sauvegarde des commandes\n");
+    printf("-1- Afficher les produits par réservation\n");
+    printf("-2- Rechercher un produit\n");
+    printf("-3- Ajouter les produits\n");
+    printf("-4- Modifier les produits\n");
+    printf("-5- Supprimer les produits\n");
     printf("-0- Revenir au menu précédent\n");
     printf("\n");
     printf("Choisissez une option : ");
 }
 
-void menuRestaurant()
+void menuRestaurant(int numero_resa)
 {
-    printf("****** Gérer le restaurant ******\n\n");
+    printf("****** Gérer le restaurant & services ******\n\n");
+    printf("Entrez le numéro de la réservation : ");
+    scanf("%d", &numero);
+    viderBuffer();
+    int trouve = lanceRecherche(numero);
+    while (trouve == VAL_INI)
+    {
+        printf(">>> Réservation numéro %d non trouvée\n", numero);
+        printf("Entrez le numéro de la réservation : ");
+        scanf("%d", &numero);
+        viderBuffer();
+        int trouve = lanceRecherche(numero);
+    }
+
+    int restaurant_choix = VAL_INI;
+    while (restaurant_choix != 0)
+    {
+        afficherMenuRestaurant();
+        scanf("%d", &restaurant_choix);
+        viderBuffer();
+        // Traitement des options
+        switch (restaurant_choix)
+        {
+        case 1:
+            afficherProduits();
+            break;
+        case 2:
+            rechercherProduit();
+            break;
+        case 3:
+            ajouterProduit();
+            break;
+        case 4:
+            modifierProduit();
+            break;
+        case 5:
+            supprimerProduit();
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour afficher les produits par réservation
+void afficherProduits()
+{
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1372,14 +1423,14 @@ void facturerReservation()
 
             // Calculer le montant de la facture
             // une_facture.montant = calculerMontantFacture(une_resa); // à définir
-            une_facture.montant = 1000; // pour tester, à supprimer
+            une_facture.total = 1000; // pour tester, à supprimer
 
             // Enregistrer la date de facturation
-            obtenirDateActuelle(&une_facture.date_facture);
+            obtenirDateActuelle(&une_facture.date_fact);
 
             // Initialiser la date de paiement de la facture
             struct date date_paiement = {0, 0, 0};
-            une_facture.date_paiement_facture = date_paiement;
+            une_facture.date_paiement = date_paiement;
 
             // Sauvegarder la facture
             tabfacture[nbfacture++] = une_facture;
@@ -1426,9 +1477,9 @@ void afficherFactures()
         {
             char date_facture[TAILLE_DATE];
             char date_paiement_facture[TAILLE_DATE];
-            dateToString(tabfacture[i].date_facture, date_facture);
-            dateToString(tabfacture[i].date_paiement_facture, date_paiement_facture);
-            printf("%-6d %-6d %-10.2f %-10s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].montant, statutFactureToString(tabfacture[i].statut), date_facture, date_paiement_facture);
+            dateToString(tabfacture[i].date_fact, date_facture);
+            dateToString(tabfacture[i].date_paiement, date_paiement_facture);
+            printf("%-6d %-6d %-10.2f %-10s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, statutFactureToString(tabfacture[i].statut), date_facture, date_paiement_facture);
         }
         printf("\n");
     }
