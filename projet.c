@@ -11,16 +11,18 @@
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-#define TAILLE_TAB 10000                         // taille maximale des tables réservervation
-#define TAILLE_TAB_PC 100000                     // taille maximale des tables clients
-#define TAILLE_PROD 100                          // taille maximale des produits
-#define TAILLE_DESC 40                           // taille maximale de la description d'un produit
-#define TAILLE_NUM_RESA 8                        // taille maximale du numéro de réservation
-#define TAILLE_CHAR 20                           // pour tout les chaines de type char
-#define TAILLE_TEL 16                            // numéro téléphone (15 max) + caractère de fin de chaine (1)
-#define TAILLE_MAIL 50                           // pour tout les chaines de type mail
-#define TAILLE_DATE 9                            // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
-#define VAL_INI -1                               // valeur initiale pour entrer dans le boucle
+#define TAILLE_TAB 10000     // taille maximale des tables réservervation
+#define TAILLE_TAB_PC 100000 // taille maximale des tables clients
+#define TAILLE_PROD 100      // taille maximale des produits
+#define TAILLE_DESC 40       // taille maximale de la description d'un produit
+#define TAILLE_NUM_RESA 8    // taille maximale du numéro de réservation
+#define TAILLE_CHAR 20       // pour tout les chaines de type char
+#define TAILLE_TEL 16        // numéro téléphone (15 max) + caractère de fin de chaine (1)
+#define TAILLE_MAIL 50       // pour tout les chaines de type mail
+#define TAILLE_DATE 9        // date pour format JJMMYYYY (8) + caractère de fin de chaine (1)
+
+#define VAL_INI -1 // valeur initiale pour entrer dans le boucle
+
 #define DB_RESERVATIONS "liste_reservations.txt" // base de données pour les réservations
 #define DB_CLIENTS "liste_clients.txt"           // base de données pour les clients
 #define DB_FACTURES "liste_factures.txt"         // base de données pour les factures
@@ -69,7 +71,7 @@ struct facture // structure d'une facture
 {
     int num_f;                 // numéro facture
     int num_r;                 // numéro réservation
-    float total;               // montant de la facture
+    float total;               // total de la facture
     struct date date_fact;     // date de la facture
     struct date date_paiement; // date de paiement de la facture
     int statut;                // 0: non payée, 1: payée
@@ -85,11 +87,11 @@ struct produit // structure d'un produit
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Variables globales
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-int nbresa = 0;                               // nombre de réservations
-int nbclient = 0;                             // nombre de clients
-int nbfacture = 0;                            // nombre de factures
-int nbproduit = 0;                            // nombre de produits
-int nbpc = 0;                                 // nombre de produits commandés
+int nbresa = 0;    // nombre de réservations
+int nbclient = 0;  // nombre de clients
+int nbfacture = 0; // nombre de factures
+int nbproduit = 0; // nombre de produits
+int nbpc = 0;      // nombre de produits commandés
 
 struct reservation tabresa[TAILLE_TAB];       // tableau principale des réservations
 struct client tabclient[TAILLE_TAB];          // tableau principale des clients
@@ -97,18 +99,18 @@ struct facture tabfacture[TAILLE_TAB];        // tableau principale des factures
 struct produit tabproduit[TAILLE_TAB];        // tableau principale des produits
 struct produit_commande tabpc[TAILLE_TAB_PC]; // tableau principale des produits commandés
 
-int a_sauvegarder_reservation = 0;            // flag pour l'alerte à sauvegarder pour les réservations
-int a_sauvegarder_client = 0;                 // flag pour l'alerte à sauvegarder pour les clients
-int a_sauvegarder_facture = 0;                // flag pour l'alerte à sauvegarder pour les factures
-int a_sauvegarder_produit = 0;                // flag pour l'alerte à sauvegarder pour les produits
-int a_sauvegarder_pc = 0;                     // flag pour l'alerte à sauvegarder pour les produits commandés
+int a_sauvegarder_reservation = 0; // flag pour l'alerte à sauvegarder pour les réservations
+int a_sauvegarder_client = 0;      // flag pour l'alerte à sauvegarder pour les clients
+int a_sauvegarder_facture = 0;     // flag pour l'alerte à sauvegarder pour les factures
+int a_sauvegarder_produit = 0;     // flag pour l'alerte à sauvegarder pour les produits
+int a_sauvegarder_pc = 0;          // flag pour l'alerte à sauvegarder pour les produits commandés
 
-int num_resa = 0;                             // numéro de séquence de réservation
-int num_client = 0;                           // numéro de séquence de client
-int num_facture = 0;                          // numéro de séquence de facture
-int num_produit = 0;                          // numéro de séquence de produit
+int num_resa = 0;    // numéro de séquence de réservation
+int num_client = 0;  // numéro de séquence de client
+int num_facture = 0; // numéro de séquence de facture
+int num_produit = 0; // numéro de séquence de produit
 
-int annee_system = 0;                         // année du système
+int annee_system = 0; // année du système
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclarations préliminaires des fonctions
@@ -166,6 +168,13 @@ void menuFacturation();
 void facturerReservation();
 void afficherEnTeteFactures();
 void afficherFactures();
+void demanderCritereRechercheFacture();
+void rechercherFacture(struct facture facture_a_trouver);
+int lanceRechercheFacture(int num_facture_a_rechercher);
+void modifierFacture();
+void supprimerFacture();
+void sauvegardeFactures();
+void chargementFactures();
 
 // Partie Produits
 void afficherMenuProduits();
@@ -199,6 +208,7 @@ void stringToDate(char *dateStr, struct date *d);
 void stringToDate(char *dateStr, struct date *d);
 int obtenirAnneeActuelle();
 void obtenirDateActuelle(struct date *d);
+void obtenirDateDuJour(char *dateStr);
 int genererNumResa();
 int genererCodeClient();
 int genererNumFacture();
@@ -214,15 +224,18 @@ void quitter();
 
 int main()
 {
-    setlocale(LC_ALL, "fr_FR.UTF-8");             // pour afficher les caractères accentués
-    setlocale(LC_ALL, "C");                       // pour afficher . comme séparateur décimal
-    chargementReservations();                     // Charger les réservations depuis la base de données
-    num_resa = tabresa[nbresa - 1].num_r;         // Récupérer le dernier numéro de réservation
-    chargementClients();                          // Charger les clients depuis la base de données
-    num_client = tabclient[nbclient - 1].code;    // Récupérer le dernier code client
-    chargementProduits();                         // Charger les produits depuis la base de données
-    num_produit = tabproduit[nbproduit - 1].code; // Récupérer le dernier code produit
-    annee_system = obtenirAnneeActuelle();        // Récupérer l'année du système
+    setlocale(LC_ALL, "fr_FR.UTF-8");              // pour afficher les caractères accentués
+    setlocale(LC_ALL, "C");                        // pour afficher . comme séparateur décimal
+    chargementReservations();                      // Charger les réservations depuis la base de données
+    num_resa = tabresa[nbresa - 1].num_r;          // Récupérer le dernier numéro de réservation
+    chargementClients();                           // Charger les clients depuis la base de données
+    num_client = tabclient[nbclient - 1].code;     // Récupérer le dernier code client
+    chargementProduits();                          // Charger les produits depuis la base de données
+    num_produit = tabproduit[nbproduit - 1].code;  // Récupérer le dernier code produit
+    chargementPC();                                // Charger les produits commandés depuis la base de données
+    chargementFactures();                          // Charger les factures depuis la base de données
+    num_facture = tabfacture[nbfacture - 1].num_f; // Récupérer le dernier numéro de facture
+    annee_system = obtenirAnneeActuelle();         // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -276,8 +289,7 @@ void afficherMenuPrincipal()
 // Fonction pour afficher le menu de gestion des réservations
 void afficherMenuReservation()
 {
-    printf("****** Gérer les réservations ******\n");
-    printf("\n");
+    printf("****** Gérer les réservations ******\n\n");
     printf("-1- Afficher les réservation        \n");
     printf("-2- Rechercher une réservation      \n");
     printf("-3- Saisir une nouvelle réservation \n");
@@ -442,64 +454,6 @@ void afficherReservations()
         }
         printf("\n");
     }
-}
-
-// Fonction pour sauvegarder les réservations dans la base de données
-void sauvegardeReservations()
-{
-    FILE *f1;
-    f1 = fopen(DB_RESERVATIONS, "w");
-    if (f1 == NULL)
-    {
-        printf(">>> Erreur d'ouverture de la base de données des réservations\n");
-        return;
-    }
-    for (int i = 0; i < nbresa; i++) // boucle de sauvegarde
-    {
-        char date_in[TAILLE_DATE];
-        char date_out[TAILLE_DATE];
-        dateToString(tabresa[i].date_entree, date_in);
-        dateToString(tabresa[i].date_sortie, date_out);
-        fprintf(f1, "%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
-    }
-    fclose(f1);
-    a_sauvegarder_reservation = 0; // désactiver le flag pour sauvegarder les données
-    printf(">>> %d réservations sauvegardées\n", nbresa);
-}
-
-// Fonction pour charger les réservations depuis la base de données
-void chargementReservations()
-{
-    struct reservation uneresa;
-    FILE *f1 = fopen(DB_RESERVATIONS, "r");
-    char dateEntree[TAILLE_DATE], dateSortie[TAILLE_DATE];
-
-    if (f1 == NULL)
-    {
-        printf("Erreur d'ouverture de la base de données des réservations.\n");
-        return;
-    }
-
-    while (fscanf(f1, "%9d %9s %9s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c) == 6)
-    {
-        // Conversion des chaînes de caractères en structures de dates
-        stringToDate(dateEntree, &uneresa.date_entree);
-        stringToDate(dateSortie, &uneresa.date_sortie);
-
-        if (nbresa < TAILLE_TAB)
-        {
-            tabresa[nbresa] = uneresa;
-            nbresa++;
-        }
-        else
-        {
-            printf("Limite du tableau de réservations atteinte.\n");
-            break;
-        }
-    }
-
-    fclose(f1);
-    printf("%d réservations chargées.\n", nbresa);
 }
 
 // Fonction pour demander le critère de recherche au utilisateur pour les réservations
@@ -745,6 +699,64 @@ void supprimerReservations()
             printf(">>> Réservation numéro %d supprimée\n", num_resa_a_supprimer);
         }
     }
+}
+
+// Fonction pour sauvegarder les réservations dans la base de données
+void sauvegardeReservations()
+{
+    FILE *f1;
+    f1 = fopen(DB_RESERVATIONS, "w");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données des réservations\n");
+        return;
+    }
+    for (int i = 0; i < nbresa; i++) // boucle de sauvegarde
+    {
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
+        dateToString(tabresa[i].date_entree, date_in);
+        dateToString(tabresa[i].date_sortie, date_out);
+        fprintf(f1, "%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
+    }
+    fclose(f1);
+    a_sauvegarder_reservation = 0; // désactiver le flag pour sauvegarder les données
+    printf(">>> %d réservations sauvegardées\n", nbresa);
+}
+
+// Fonction pour charger les réservations depuis la base de données
+void chargementReservations()
+{
+    struct reservation uneresa;
+    FILE *f1 = fopen(DB_RESERVATIONS, "r");
+    char dateEntree[TAILLE_DATE], dateSortie[TAILLE_DATE];
+
+    if (f1 == NULL)
+    {
+        printf("Erreur d'ouverture de la base de données des réservations.\n");
+        return;
+    }
+
+    while (fscanf(f1, "%9d %9s %9s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c) == 6)
+    {
+        // Conversion des chaînes de caractères en structures de dates
+        stringToDate(dateEntree, &uneresa.date_entree);
+        stringToDate(dateSortie, &uneresa.date_sortie);
+
+        if (nbresa < TAILLE_TAB)
+        {
+            tabresa[nbresa] = uneresa;
+            nbresa++;
+        }
+        else
+        {
+            printf("Limite du tableau de réservations atteinte.\n");
+            break;
+        }
+    }
+
+    fclose(f1);
+    printf("%d réservations chargées.\n", nbresa);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1364,8 +1376,8 @@ void menuPC()
 // Fonction pour afficher les produits par réservation
 void afficherPC(int idx_resa)
 {
-    printf("index %d\n", idx_resa); // debug
     int prod_trouve = 0;
+
     printf("Produits commandés pour la réservation numéro %d\n", tabresa[idx_resa].num_r);
     printf("%-6s %-40s %-6s %-10s %-10s\n", "CODE", "DESC", "QTE", "PRIX.U", "TOTAL");
     for (int i = 0; i < TAILLE_TAB_PC - 1; i++)
@@ -1587,10 +1599,9 @@ void afficherMenuFacturation()
     printf("-1- Afficher les factures\n");
     printf("-2- Rechercher une facture\n");
     printf("-3- Facturer une réservation\n");
-    printf("-4- Paiement d'une facture\n");
-    printf("-5- Modifier une facture\n");
-    printf("-6- Supprimer une facture\n");
-    printf("-7- Sauvegarde des factures\n");
+    printf("-4- Modifier une facture\n");
+    printf("-5- Supprimer une facture\n");
+    printf("-6- Sauvegarde des factures\n");
     printf("-0- Revenir au menu précédent\n");
     printf("\n");
     printf("Choisissez une option : ");
@@ -1618,7 +1629,365 @@ void menuFacturation()
 }
 
 // Fonction pour facturer une réservation
+void facturerReservation()
+{
+    int num_r; // Numéro de la réservation à facturer
+    int i = nbfacture;
+    printf("Entrez le numéro de la réservation à facturer : ");
+    scanf("%d", &num_r);
+    viderBuffer();
+    int idx_resa = lanceRecherche(num_r);
+    if (idx_resa == VAL_INI)
+    {
+        printf(">>> Réservation numéro %d non trouvée\n", num_r);
+    }
+    else
+    {
+        // Afficher les informations de la réservation
+        afficherEnTeteReservations();
+        char date_in[TAILLE_DATE];
+        char date_out[TAILLE_DATE];
+        dateToString(tabresa[idx_resa].date_entree, date_in);
+        dateToString(tabresa[idx_resa].date_sortie, date_out);
+        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[idx_resa].num_r, date_in, date_out, tabresa[idx_resa].chambre, tabresa[idx_resa].nombre_pers, tabresa[idx_resa].num_c);
 
+        // Afficher les produits commandés
+        afficherPC(idx_resa);
+
+        // Calculer le montant total de la facture
+        float total_facture = 0;
+        for (int i = 0; i < TAILLE_TAB_PC - 1; i++)
+        {
+            if (tabpc[i].num_r == num_r)
+            {
+                int idx_p = lanceRechercheProduit(tabpc[i].code);
+                total_facture += tabpc[i].qte * tabproduit[idx_p].prix;
+            }
+        }
+        printf("Montant total de la facture : %.2f €\n", total_facture);
+
+        // Demander confirmation pour facturer la réservation
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la facturation de la réservation (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Générer un numéro de facture unique
+            struct facture une_facture;
+            une_facture.num_f = genererNumFacture();
+            ;
+            une_facture.num_r = num_r;
+            une_facture.total = total_facture;
+            obtenirDateActuelle(&une_facture.date_fact);
+            struct date date_paiement = {0, 0, 0};
+            une_facture.date_paiement = date_paiement;
+            tabfacture[i++] = une_facture;
+        }
+
+        nbfacture = i; // Mettre à jour le nombre des factures
+        a_sauvegarder_facture = 1;
+    }
+}
+
+// Fonction pour afficher les factures
+void afficherFactures()
+{
+    if (nbfacture == 0)
+    {
+        printf(">>> Aucune facture à afficher\n");
+    }
+    else
+    {
+        afficherEnTeteFactures();
+        for (int i = 0; i < nbfacture; i++)
+        {
+            char date_fact[TAILLE_DATE];
+            char date_paiement[TAILLE_DATE];
+            char *statut_f;
+            statut_f = statutFactureToString(tabfacture[i].statut);
+            dateToString(tabfacture[i].date_fact, date_fact);
+            dateToString(tabfacture[i].date_paiement, date_paiement);
+            printf("%-9d %-9d %-9.2f %-9s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, date_fact, date_paiement, statut_f);
+        }
+    }
+}
+
+// Fonction pour afficher l'en-tête du tableau des factures
+void afficherEnTeteFactures()
+{
+    printf("%-9s %-9s %-9s %-9s %-9s %-9s\n", "NUM_F", "NUM_R", "TOTAL", "D.FACT", "D.PAIE", "STATUT");
+}
+
+// Fonction pour rechercher une facture par son numéro
+int lanceRechercheFacture(int num_facture_a_rechercher)
+{
+    int idx_facture = VAL_INI;
+    for (int i = 0; i < nbfacture; i++)
+    {
+        if (tabfacture[i].num_f == num_facture_a_rechercher)
+        {
+            idx_facture = i;
+            break;
+        }
+    }
+    return idx_facture;
+}
+
+// Fonction pour demander les critères de recherche d'une facture
+void demanderCritereRechercheFacture()
+{
+    struct facture recherche_facture = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0}; // Initialiser les critères de recherche
+
+    int critere_recherche = VAL_INI;
+    if (nbfacture == 0)
+    {
+        printf(">>> Aucune facture à rechercher\n");
+        return;
+    }
+    while (critere_recherche != 0)
+    {
+        printf("Choisir critère de recherche : \n");
+        printf("-1- Numéro de facture\n");
+        printf("-2- Numéro de réservation\n");
+        printf("-3- Total\n");
+        printf("-4- Date de facture\n");
+        printf("-5- Date de paiement\n");
+        printf("-6- Statut\n");
+        printf("-0- Revenir au menu précédent\n\n");
+        printf("Votre choix : ");
+        scanf("%d", &critere_recherche);
+        viderBuffer();
+        // Traitement des options
+        switch (critere_recherche)
+        {
+        case 1:
+            printf("Entrez le numéro de la facture : ");
+            scanf("%d", &recherche_facture.num_f);
+            viderBuffer();
+            rechercherFacture(recherche_facture);
+            break;
+        case 2:
+            printf("Entrez le numéro de la réservation : ");
+            scanf("%d", &recherche_facture.num_r);
+            viderBuffer();
+            break;
+        case 3:
+            printf("Entrez le montant total de la facture : ");
+            scanf("%f", &recherche_facture.total);
+            viderBuffer();
+            rechercherFacture(recherche_facture);
+            break;
+        case 4:
+            printf("Entrez la date de facturation (jjmmaaaa) : ");
+            scanf("%2d%2d%4d", &recherche_facture.date_fact.jour, &recherche_facture.date_fact.mois, &recherche_facture.date_fact.annee);
+            viderBuffer();
+            rechercherFacture(recherche_facture);
+            break;
+        case 5:
+            printf("Entrez la date de paiement (jjmmaaaa) : ");
+            scanf("%2d%2d%4d", &recherche_facture.date_paiement.jour, &recherche_facture.date_paiement.mois, &recherche_facture.date_paiement.annee);
+            rechercherFacture(recherche_facture);
+            viderBuffer();
+            break;
+        case 6:
+            printf("Entrez le statut de la facture (0: non payée, 1: payée) : ");
+            scanf("%d", &recherche_facture.statut);
+            rechercherFacture(recherche_facture);
+            viderBuffer();
+            break;
+        case 0:
+            break;
+        default:
+            printf(">>> Option invalide. Veuillez réessayer.\n");
+        }
+    }
+}
+
+// Fonction pour rechercher une facture par critere de recherche
+void rechercherFacture(struct facture facture_a_trouver)
+{
+    int nb_facture_trouve = 0; // Nombre de factures trouvées
+
+    // Afficher l'en-tête seulement s'il y a des factures à afficher
+    if (nbfacture > 0)
+    {
+        afficherEnTeteFactures();
+    }
+
+    for (int i = 0; i < nbfacture; i++)
+    {
+        bool match = false; // Indicateur si la facture actuelle correspond aux critères
+
+        // Vérifier les critères de recherche
+        if ((facture_a_trouver.num_f > 0 && tabfacture[i].num_f == facture_a_trouver.num_f) ||
+            (facture_a_trouver.num_r > 0 && tabfacture[i].num_r == facture_a_trouver.num_r) ||
+            (facture_a_trouver.total > 0 && tabfacture[i].total == facture_a_trouver.total) ||
+            (dateEgale(tabfacture[i].date_fact, facture_a_trouver.date_fact) && facture_a_trouver.date_fact.jour > 0) ||
+            (dateEgale(tabfacture[i].date_paiement, facture_a_trouver.date_paiement) && facture_a_trouver.date_paiement.jour > 0) ||
+            (facture_a_trouver.statut >= 0 && tabfacture[i].statut == facture_a_trouver.statut))
+        {
+            match = true;
+        }
+
+        // Si un match est trouvé, afficher la facture
+        if (match)
+        {
+            char date_fact[TAILLE_DATE];
+            char date_paiement[TAILLE_DATE];
+            char *statut_f;
+            dateToString(tabfacture[i].date_fact, date_fact);
+            dateToString(tabfacture[i].date_paiement, date_paiement);
+            statut_f = statutFactureToString(tabfacture[i].statut);
+            printf("%-9d %-9d %-9.2f %-9s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, date_fact, date_paiement, statut_f);
+            nb_facture_trouve++;
+        }
+    }
+
+    if (nb_facture_trouve == 0)
+    {
+        printf(">>> Aucune facture trouvée correspondant aux critères.\n");
+    }
+}
+
+// Fonction pour modifier une facture
+void modifierFacture()
+{
+    int num_facture;
+    printf("Entrez le numéro de la facture à modifier : ");
+    scanf("%d", &num_facture);
+    viderBuffer();
+    int idx_facture = lanceRechercheFacture(num_facture);
+    if (idx_facture == VAL_INI)
+    {
+        printf(">>> Facture numéro %d non trouvée\n", num_facture);
+    }
+    else
+    {
+        // Afficher les informations de la facture
+        afficherEnTeteFactures();
+        char date_fact[TAILLE_DATE];
+        char date_paiement[TAILLE_DATE];
+        char *statut_f;
+        dateToString(tabfacture[idx_facture].date_fact, date_fact);
+        dateToString(tabfacture[idx_facture].date_paiement, date_paiement);
+        statut_f = statutFactureToString(tabfacture[idx_facture].statut);
+        printf("%-9d %-9d %-9.2f %-9s %-9s %-9s\n", tabfacture[idx_facture].num_f, tabfacture[idx_facture].num_r, tabfacture[idx_facture].total, date_fact, date_paiement, statut_f);
+
+        // Demander confirmation pour modifier la facture
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la modification de la facture (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Modifier la facture
+            printf("Entrez le nouveau date de paiement de la facture : ");
+            scanf("%2d%2d%4d", &tabfacture[idx_facture].date_paiement.jour, &tabfacture[idx_facture].date_paiement.mois, &tabfacture[idx_facture].date_paiement.annee);
+            viderBuffer();
+            a_sauvegarder_facture = 1;
+            printf(">>> Facture numéro %d modifiée\n", num_facture);
+        }
+    }
+}
+
+// Fonction pour supprimer une facture
+void supprimerFacture()
+{
+    int num_facture;
+    printf("Entrez le numéro de la facture à supprimer : ");
+    scanf("%d", &num_facture);
+    viderBuffer();
+    int idx_facture = lanceRechercheFacture(num_facture);
+    if (idx_facture == VAL_INI)
+    {
+        printf(">>> Facture numéro %d non trouvée\n", num_facture);
+    }
+    else
+    {
+        // Afficher les informations de la facture
+        afficherEnTeteFactures();
+        char date_fact[TAILLE_DATE];
+        char date_paiement[TAILLE_DATE];
+        char *statut_f;
+        dateToString(tabfacture[idx_facture].date_fact, date_fact);
+        dateToString(tabfacture[idx_facture].date_paiement, date_paiement);
+        statut_f = statutFactureToString(tabfacture[idx_facture].statut);
+        printf("%-9d %-9d %-9.2f %-9s %-9s %-9s\n", tabfacture[idx_facture].num_f, tabfacture[idx_facture].num_r, tabfacture[idx_facture].total, date_fact, date_paiement, statut_f);
+
+        // Demander confirmation pour supprimer la facture
+        char reponse[TAILLE_CHAR];
+        printf("Confirmez-vous la suppression de la facture (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+        if (reponse[0] == 'O')
+        {
+            // Supprimer la facture
+            for (int i = idx_facture; i < nbfacture - 1; i++)
+            {
+                tabfacture[i] = tabfacture[i + 1];
+            }
+            nbfacture--;
+            a_sauvegarder_facture = 1;
+            printf(">>> Facture numéro %d supprimée\n", num_facture);
+        }
+    }
+}
+
+// Fonction pour sauvegarder les factures dans la base de données
+void sauvegardeFactures()
+{
+    FILE *f1;
+    f1 = fopen(DB_FACTURES, "w");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données des factures\n");
+        return;
+    }
+    for (int i = 0; i < nbfacture; i++) // boucle de sauvegarde
+    {
+        char date_fact[TAILLE_DATE];
+        char date_paiement[TAILLE_DATE];
+        dateToString(tabfacture[i].date_fact, date_fact);
+        dateToString(tabfacture[i].date_paiement, date_paiement);
+        fprintf(f1, "%-9d %-9d %-9.2f %-9s %-9s %-9d\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, date_fact, date_paiement, tabfacture[i].statut);
+    }
+    fclose(f1);
+    a_sauvegarder_facture = 0; // désactiver le flag pour sauvegarder les données
+    printf(">>> %d factures sauvegardées\n", nbfacture);
+}
+
+// Fonction pour charger les factures depuis la base de données
+void chargementFactures()
+{
+    struct facture unefacture;
+    FILE *f1 = fopen(DB_FACTURES, "r");
+    char date_fact[TAILLE_DATE], date_paiement[TAILLE_DATE];
+
+    if (f1 == NULL)
+    {
+        printf("Erreur d'ouverture de la base de données des factures.\n");
+        return;
+    }
+    while (fscanf(f1, "%9d %9d %f %9s %9s %9d\n", &unefacture.num_f, &unefacture.num_r, &unefacture.total, date_fact, date_paiement, &unefacture.statut) == 6)
+    {
+        if (nbfacture < TAILLE_TAB)
+        {
+            tabfacture[nbfacture] = unefacture;
+            nbfacture++;
+        }
+        else
+        {
+            printf("Limite du tableau des factures atteinte.\n");
+            break;
+        }
+    }
+    fclose(f1);
+    printf("%d factures chargées.\n", nbfacture);
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fonctions pour gerer les produits
@@ -2145,15 +2514,14 @@ bool chambreDisponible(int chambre, struct date date_entree, struct date date_so
     {
         if (tabresa[i].chambre == chambre)
         {
-            if ((dateEgale(date_entree, tabresa[i].date_entree) || dateEgale(date_entree, tabresa[i].date_sortie)) ||
-                (dateEgale(date_sortie, tabresa[i].date_entree) || dateEgale(date_sortie, tabresa[i].date_sortie)) ||
-                (dateSuperieure(date_entree, tabresa[i].date_entree) && dateSuperieure(tabresa[i].date_sortie, date_sortie)))
+            // Vérifier si la date d'entrée ou de sortie est comprise dans une réservation existante
+            if (dateSuperieure(tabresa[i].date_sortie, date_entree) && dateSuperieure(date_sortie, tabresa[i].date_entree))
             {
-                return false;
+                return false; // Chambre non disponible
             }
         }
     }
-    return true;
+    return true; // Chambre disponible
 }
 
 // Fonction pour vérifier s'il y a des données à sauvegarder, déclencher par le flag
@@ -2216,7 +2584,7 @@ bool dateExiste(struct date d)
     return d.jour <= jours_par_mois[d.mois - 1];
 }
 
-// Fonction pour vérifier si une date est supérieure à une autre
+// Fonction pour vérifier si une date est supérieure à une autre, retourne true si d1 > d2
 bool dateSuperieure(struct date d1, struct date d2)
 {
     if (d1.annee > d2.annee)
@@ -2262,6 +2630,14 @@ void obtenirDateActuelle(struct date *d)
     d->jour = tm.tm_mday;
     d->mois = tm.tm_mon + 1;
     d->annee = tm.tm_year + 1900;
+}
+
+// Fonction pour obtenir la date du jour sous forme de chaine de caractères
+void obtenirDateDuJour(char *dateStr)
+{
+    struct date d;
+    obtenirDateActuelle(&d);
+    dateToString(d, dateStr);
 }
 
 // Fonction pour générer un numéro de réservation unique au format "yyyyxxxx"
