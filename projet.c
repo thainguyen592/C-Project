@@ -12,6 +12,7 @@
 // Constantes
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #define TAILLE_TAB 10000                         // taille maximale des tables réservervation
+#define TAILLE_TAB_PC 100000                     // taille maximale des tables clients
 #define TAILLE_PROD 100                          // taille maximale des produits
 #define TAILLE_DESC 40                           // taille maximale de la description d'un produit
 #define TAILLE_NUM_RESA 8                        // taille maximale du numéro de réservation
@@ -24,6 +25,7 @@
 #define DB_CLIENTS "liste_clients.txt"           // base de données pour les clients
 #define DB_FACTURES "liste_factures.txt"         // base de données pour les factures
 #define DB_PRODUITS "liste_produits.txt"         // base de données pour les produits
+#define DB_PC "liste_pc.txt"                     // base de données pour les produits commandés
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Types global
@@ -33,6 +35,13 @@ struct date // structure d'une date
     int jour;
     int mois;
     int annee;
+};
+
+struct produit_commande // structure des produits commandés
+{
+    int num_r; // numéro réservation
+    int code;  // code produit
+    int qte;   // quantité commandée
 };
 
 struct client // structure d'un client
@@ -56,13 +65,6 @@ struct reservation // structure d'une réservation
     int num_c;               // numéro client
 };
 
-struct produit_commande // structure des produits commandés
-{
-    int num_r; // numéro réservation
-    int code;  // code produit
-    int qte;   // quantité commandée
-};
-
 struct facture // structure d'une facture
 {
     int num_f;                 // numéro facture
@@ -83,23 +85,30 @@ struct produit // structure d'un produit
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Variables globales
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-int nbresa = 0;                         // nombre de réservations
-int nbclient = 0;                       // nombre de clients
-int nbfacture = 0;                      // nombre de factures
-int nbproduit = 0;                      // nombre de produits
-struct reservation tabresa[TAILLE_TAB]; // tableau principale des réservations
-struct client tabclient[TAILLE_TAB];    // tableau principale des clients
-struct facture tabfacture[TAILLE_TAB];  // tableau principale des factures
-struct produit tabproduit[TAILLE_TAB];  // tableau principale des produits
-int a_sauvegarder_reservation = 0;      // flag pour l'alerte à sauvegarder pour les réservations
-int a_sauvegarder_client = 0;           // flag pour l'alerte à sauvegarder pour les clients
-int a_sauvegarder_facture = 0;          // flag pour l'alerte à sauvegarder pour les factures
-int a_sauvegarder_produit = 0;          // flag pour l'alerte à sauvegarder pour les produits
-int num_resa = 0;                       // numéro de séquence de réservation
-int num_client = 0;                     // numéro de séquence de client
-int num_facture = 0;                    // numéro de séquence de facture
-int num_produit = 0;                    // numéro de séquence de produit
-int annee_system = 0;                   // année du système
+int nbresa = 0;                               // nombre de réservations
+int nbclient = 0;                             // nombre de clients
+int nbfacture = 0;                            // nombre de factures
+int nbproduit = 0;                            // nombre de produits
+int nbpc = 0;                                 // nombre de produits commandés
+
+struct reservation tabresa[TAILLE_TAB];       // tableau principale des réservations
+struct client tabclient[TAILLE_TAB];          // tableau principale des clients
+struct facture tabfacture[TAILLE_TAB];        // tableau principale des factures
+struct produit tabproduit[TAILLE_TAB];        // tableau principale des produits
+struct produit_commande tabpc[TAILLE_TAB_PC]; // tableau principale des produits commandés
+
+int a_sauvegarder_reservation = 0;            // flag pour l'alerte à sauvegarder pour les réservations
+int a_sauvegarder_client = 0;                 // flag pour l'alerte à sauvegarder pour les clients
+int a_sauvegarder_facture = 0;                // flag pour l'alerte à sauvegarder pour les factures
+int a_sauvegarder_produit = 0;                // flag pour l'alerte à sauvegarder pour les produits
+int a_sauvegarder_pc = 0;                     // flag pour l'alerte à sauvegarder pour les produits commandés
+
+int num_resa = 0;                             // numéro de séquence de réservation
+int num_client = 0;                           // numéro de séquence de client
+int num_facture = 0;                          // numéro de séquence de facture
+int num_produit = 0;                          // numéro de séquence de produit
+
+int annee_system = 0;                         // année du système
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclarations préliminaires des fonctions
@@ -139,8 +148,17 @@ void supprimerClient();
 void sauvegardeClients();
 void chargementClients();
 
-// Partie Restaurant
-void afficherMenuRestaurant();
+// Partie Restaurant&Services
+void afficherMenuPC();
+void menuPC();
+void afficherPC(int idx_resa);
+int lanceRecherchePC(int idx_resa, int code_pc);
+void rechercherPC(int idx_resa);
+void ajouterPC(int idx_resa);
+void modifierPC(int idx_resa);
+void supprimerPC(int idx_resa);
+void sauvegardePC();
+void chargementPC();
 
 // Partie Factures
 void afficherMenuFacturation();
@@ -168,7 +186,7 @@ void chargementProduits();
 bool nomValide(char nom[]);
 bool telValide(char tel[]);
 bool mailValide(char mail[]);
-void menuRestaurant();
+void menuPC();
 void convMaj(char chaine[]);
 void verifSauvegarde();
 bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie);
@@ -184,6 +202,7 @@ void obtenirDateActuelle(struct date *d);
 int genererNumResa();
 int genererCodeClient();
 int genererNumFacture();
+bool codeProduitValide(int code);
 char *niveauFideliteToString(int nf);
 char *statutFactureToString(int sf);
 void viderBuffer();
@@ -216,7 +235,7 @@ int main()
             menuReservation();
             break;
         case 2:
-            menuRestaurant();
+            menuPC();
             break;
         case 3:
             menuClient();
@@ -369,7 +388,8 @@ void saisirReservations()
             viderBuffer();
         }
 
-        uneresa.num_r = genererNumResa(); // Générer un numéro de réservation unique
+        // Générer un numéro de réservation unique
+        uneresa.num_r = genererNumResa();
         printf(">>> Réservation numéro %d enregistrée\n", uneresa.num_r);
 
         tabresa[i++] = uneresa;        // Sauvegarder les données saisies dans le tableau
@@ -431,7 +451,7 @@ void sauvegardeReservations()
     f1 = fopen(DB_RESERVATIONS, "w");
     if (f1 == NULL)
     {
-        printf(">>> Erreur d'ouverture de la base de données\n");
+        printf(">>> Erreur d'ouverture de la base de données des réservations\n");
         return;
     }
     for (int i = 0; i < nbresa; i++) // boucle de sauvegarde
@@ -456,7 +476,7 @@ void chargementReservations()
 
     if (f1 == NULL)
     {
-        printf("Erreur d'ouverture de la base de données.\n");
+        printf("Erreur d'ouverture de la base de données des réservations.\n");
         return;
     }
 
@@ -1219,7 +1239,7 @@ void sauvegardeClients()
     f1 = fopen(DB_CLIENTS, "w");
     if (f1 == NULL)
     {
-        printf(">>> Erreur d'ouverture de la base de données\n");
+        printf(">>> Erreur d'ouverture de la base de données des clients\n");
         return;
     }
     for (int i = 0; i < nbclient; i++) // boucle de sauvegarde
@@ -1243,7 +1263,7 @@ void chargementClients()
 
     if (f1 == NULL)
     {
-        printf("Erreur d'ouverture de la base de données.\n");
+        printf("Erreur d'ouverture de la base de données des clients.\n");
         return;
     }
 
@@ -1268,13 +1288,13 @@ void chargementClients()
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fonctions pour la partie Restaurant & Services
+// Fonctions pour la partie Produits Commandés
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// Fonction pour afficher le menu de gestion du restaurant & services
-void afficherMenuRestaurant()
+// Fonction pour afficher le menu de gestion des Produits Commandés
+void afficherMenuPC()
 {
-    printf("-1- Afficher les produits par réservation\n");
+    printf("-1- Afficher les produits\n");
     printf("-2- Rechercher un produit\n");
     printf("-3- Ajouter les produits\n");
     printf("-4- Modifier les produits\n");
@@ -1284,45 +1304,54 @@ void afficherMenuRestaurant()
     printf("Choisissez une option : ");
 }
 
-void menuRestaurant(int numero_resa)
+void menuPC()
 {
+    int numero_resa;
     printf("****** Gérer le restaurant & services ******\n\n");
     printf("Entrez le numéro de la réservation : ");
-    scanf("%d", &numero);
+    scanf("%d", &numero_resa);
     viderBuffer();
-    int trouve = lanceRecherche(numero);
+    int trouve = lanceRecherche(numero_resa);
     while (trouve == VAL_INI)
     {
-        printf(">>> Réservation numéro %d non trouvée\n", numero);
+        printf(">>> Réservation numéro %d non trouvée\n", numero_resa);
         printf("Entrez le numéro de la réservation : ");
-        scanf("%d", &numero);
+        scanf("%d", &numero_resa);
         viderBuffer();
-        int trouve = lanceRecherche(numero);
+        trouve = lanceRecherche(numero_resa);
     }
+
+    // afficher les informations de la réservation trouvé
+    afficherEnTeteReservations();
+    char date_in[TAILLE_DATE];
+    char date_out[TAILLE_DATE];
+    dateToString(tabresa[trouve].date_entree, date_in);
+    dateToString(tabresa[trouve].date_sortie, date_out);
+    printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[trouve].num_r, date_in, date_out, tabresa[trouve].chambre, tabresa[trouve].nombre_pers, tabresa[trouve].num_c);
 
     int restaurant_choix = VAL_INI;
     while (restaurant_choix != 0)
     {
-        afficherMenuRestaurant();
+        afficherMenuPC();
         scanf("%d", &restaurant_choix);
         viderBuffer();
         // Traitement des options
         switch (restaurant_choix)
         {
         case 1:
-            afficherProduits();
+            afficherPC(trouve);
             break;
         case 2:
-            rechercherProduit();
+            rechercherPC(trouve);
             break;
         case 3:
-            ajouterProduit();
+            ajouterPC(trouve);
             break;
         case 4:
-            modifierProduit();
+            modifierPC(trouve);
             break;
         case 5:
-            supprimerProduit();
+            supprimerPC(trouve);
             break;
         case 0:
             break;
@@ -1333,8 +1362,218 @@ void menuRestaurant(int numero_resa)
 }
 
 // Fonction pour afficher les produits par réservation
-void afficherProduits()
+void afficherPC(int idx_resa)
 {
+    printf("index %d\n", idx_resa); // debug
+    int prod_trouve = 0;
+    printf("Produits commandés pour la réservation numéro %d\n", tabresa[idx_resa].num_r);
+    printf("%-6s %-40s %-6s %-10s %-10s\n", "CODE", "DESC", "QTE", "PRIX.U", "TOTAL");
+    for (int i = 0; i < TAILLE_TAB_PC - 1; i++)
+    {
+        if (tabpc[i].num_r == tabresa[idx_resa].num_r)
+        {
+            int idx_p = lanceRechercheProduit(tabpc[i].code);
+            float total_pc = tabpc[i].qte * tabproduit[idx_p].prix;
+            printf("%-6d %-40s %-6d %-10.2f %-10.2f\n", tabpc[i].code, tabproduit[idx_p].desc, tabpc[i].qte, tabproduit[idx_p].prix, total_pc);
+            prod_trouve = 1;
+        }
+    }
+    if (!prod_trouve)
+    {
+        printf(">>> Aucun produit commandé pour la réservation numéro %d\n", tabresa[idx_resa].num_r);
+    }
+}
+
+// Fonction pour rechercher un produit par réservation, retourne l'index du produit commandé dans la liste des produits commandés
+int lanceRecherchePC(int idx_resa, int code_pc)
+{
+    int idx_pc = VAL_INI;
+    for (int i = 0; i < TAILLE_TAB_PC - 1; i++)
+    {
+        if (tabpc[i].num_r == tabresa[idx_resa].num_r && tabpc[i].code == code_pc)
+        {
+            idx_pc = i;
+            break;
+        }
+    }
+    return idx_pc;
+}
+
+// Fonction pour rechercher un produit par réservation
+void rechercherPC(int idx_resa)
+{
+    int code_pc;
+    do // boucle pour demander le code du produit à rechercher
+    {
+        printf("Entrez le code du produit à rechercher : ");
+        scanf("%d", &code_pc);
+        viderBuffer();
+        if (!codeProduitValide(code_pc))
+        {
+            printf(">>> Produit code %d n'existe pas.\n", code_pc);
+        }
+    } while (!codeProduitValide(code_pc));
+
+    int idx_pc = lanceRecherchePC(idx_resa, code_pc);
+    if (idx_pc == VAL_INI)
+    {
+        printf(">>> Produit code %d non trouvé pour la réservation %d\n", code_pc, tabresa[idx_resa].num_r);
+    }
+    else
+    {
+        printf("Produit trouvé : \n");
+        printf("%-6s %-40s %-6s %-10s -%10s\n", "CODE", "DESC", "QTE", "PRIX.U", "TOTAL");
+        int idx_p = lanceRechercheProduit(code_pc);
+        float total_pc = tabpc[idx_pc].qte * tabproduit[idx_pc].prix;
+        printf("%-6d %-40s %-6d %-10.2f %-10.2f\n", tabpc[idx_pc].num_r, tabproduit[idx_p].desc, tabpc[idx_pc].qte, tabproduit[idx_p].prix, total_pc);
+    }
+}
+
+// Fonction pour ajouter un produit par réservation
+void ajouterPC(int idx_resa)
+{
+    char reponse[TAILLE_CHAR];
+    int code_pc, qte_pc;
+    int i = nbpc;
+    do
+    {
+        do
+        {
+            printf("Entrez le code du produit: ");
+            scanf("%d", &code_pc);
+            viderBuffer();
+            if (!codeProduitValide(code_pc))
+            {
+                printf(">>> Produit code %d n'existe pas.\n", code_pc);
+            }
+        } while (!codeProduitValide(code_pc));
+        int idx_pc = lanceRecherchePC(idx_resa, code_pc);
+        if (idx_pc != VAL_INI) // Vérifier si le produit est déjà présent dans la liste des produits commandés
+        {
+            printf(">>> Produit code %d déjà présent\n", code_pc);
+            printf("Entrez la quantité du produit à ajouter : ");
+            scanf("%d", &qte_pc);
+            viderBuffer();
+            tabpc[idx_pc].qte += qte_pc; // Ajouter la quantité à la quantité existante
+            a_sauvegarder_pc = 1;
+            printf(">>> Quantité du produit code %d modifiée\n", code_pc);
+        }
+        else // Ajouter un nouveau produit commandé
+        {
+            printf("Entrez la quantité du produit: ");
+            scanf("%d", &qte_pc);
+            viderBuffer();
+            tabpc[i].num_r = tabresa[idx_resa].num_r;
+            tabpc[i].code = code_pc;
+            tabpc[i].qte = qte_pc;
+            i++;
+            a_sauvegarder_pc = 1;
+            printf(">>> Produit code %d ajouté\n", code_pc);
+        }
+        printf("Voulez-vous ajouter un autre produit ? (o/n) : ");
+        scanf("%s", reponse);
+        viderBuffer();
+        convMaj(reponse);
+    } while (reponse[0] == 'O');
+
+    nbpc = i; // Mettre à jour le nombre des produits commandés
+}
+
+// Fonction pour modifier un produit par réservation
+void modifierPC(int idx_resa)
+{
+    int code_pc;
+    int idx_pc = VAL_INI;
+    do
+    {
+        printf("Entrez le code du produit à modifier : ");
+        scanf("%d", &code_pc);
+        viderBuffer();
+        idx_pc = lanceRecherchePC(idx_resa, code_pc);
+        if (idx_pc == VAL_INI)
+        {
+            printf(">>> Produit code %d non trouvé pour la réservation %d\n", code_pc, tabresa[idx_resa].num_r);
+        }
+    } while (idx_pc == VAL_INI);
+
+    printf("Entrez la nouvelle quantité du produit : ");
+    scanf("%d", &tabpc[idx_pc].qte);
+    viderBuffer();
+    printf(">>> Produit code %d modifié\n", code_pc);
+
+    a_sauvegarder_reservation = 1;
+}
+
+// Fonction pour supprimer un produit par réservation
+void supprimerPC(int idx_resa)
+{
+    int code_pc;
+    int idx_pc = VAL_INI;
+    do
+    {
+        printf("Entrez le code du produit à supprimer : ");
+        scanf("%d", &code_pc);
+        viderBuffer();
+        idx_pc = lanceRecherchePC(idx_resa, code_pc);
+        if (idx_pc == VAL_INI)
+        {
+            printf(">>> Produit code %d non trouvé pour la réservation %d\n", code_pc, tabresa[idx_resa].num_r);
+        }
+    } while (idx_pc == VAL_INI);
+
+    for (int i = idx_pc; i < TAILLE_TAB_PC - 1; i++)
+    {
+        tabpc[i] = tabpc[i + 1];
+    }
+    printf(">>> Produit code %d supprimé\n", code_pc);
+
+    a_sauvegarder_reservation = 1;
+}
+
+// Fonction pour sauvegarder les produits commandés dans la base de données
+void sauvegardePC()
+{
+    FILE *f1;
+    f1 = fopen(DB_PC, "w");
+    if (f1 == NULL)
+    {
+        printf(">>> Erreur d'ouverture de la base de données des produits commandés\n");
+        return;
+    }
+    for (int i = 0; i < nbpc; i++) // boucle de sauvegarde
+    {
+        fprintf(f1, "%-9d %-9d %-9d\n", tabpc[i].num_r, tabpc[i].code, tabpc[i].qte);
+    }
+    fclose(f1);
+    a_sauvegarder_pc = 0; // désactiver le flag pour sauvegarder les données
+    printf(">>> %d produits commandés sauvegardés\n", nbpc);
+}
+
+// Fonction pour charger les produits commandés depuis la base de données
+void chargementPC()
+{
+    struct produit_commande unpc;
+    FILE *f1 = fopen(DB_PC, "r");
+    if (f1 == NULL)
+    {
+        printf("Erreur d'ouverture de la base de données des produits commandés.\n");
+        return;
+    }
+    while (fscanf(f1, "%9d %9d %9d\n", &unpc.num_r, &unpc.code, &unpc.qte) == 3)
+    {
+        if (nbpc < TAILLE_TAB_PC)
+        {
+            tabpc[nbpc] = unpc;
+            nbpc++;
+        }
+        else
+        {
+            printf("Limite du tableau des produits commandés atteinte.\n");
+            break;
+        }
+    }
+    fclose(f1);
+    printf("%d produits commandés chargés.\n", nbpc);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1379,111 +1618,7 @@ void menuFacturation()
 }
 
 // Fonction pour facturer une réservation
-void facturerReservation()
-{
-    struct reservation une_resa;
-    struct facture une_facture;
-    int num_resa_a_facturer, trouve;
 
-    printf("Entrez le numéro de la réservation à facturer : ");
-    scanf("%d", &num_resa_a_facturer);
-    viderBuffer();
-
-    trouve = lanceRecherche(num_resa_a_facturer);
-    if (trouve == VAL_INI)
-    {
-        printf(">>> Réservation numéro %d non trouvée\n", num_resa_a_facturer);
-    }
-    else
-    {
-        une_resa = tabresa[trouve];
-        char date_in[TAILLE_DATE];
-        char date_out[TAILLE_DATE];
-
-        // Afficher les informations actuelles
-        dateToString(une_resa.date_entree, date_in);
-        dateToString(une_resa.date_sortie, date_out);
-        printf("Réservation trouvée : \n");
-        afficherEnTeteReservations();
-        printf("%-9d %-9s %-9s %-9d %-9d %-9d\n", une_resa.num_r, date_in, date_out, une_resa.chambre, une_resa.nombre_pers, une_resa.num_c);
-
-        // Demander confirmation pour facturer la réservation
-        char reponse[TAILLE_CHAR];
-        printf("Confirmez-vous la facturation de la réservation numéro %d (o/n) : ", num_resa_a_facturer);
-        scanf("%s", reponse);
-        viderBuffer();
-        convMaj(reponse);
-        if (reponse[0] == 'O')
-        {
-            // Générer un numéro de facture unique
-            une_facture.num_f = genererNumFacture();
-
-            // Enregistrer le numéro de réservation
-            une_facture.num_r = num_resa_a_facturer;
-
-            // Calculer le montant de la facture
-            // une_facture.montant = calculerMontantFacture(une_resa); // à définir
-            une_facture.total = 1000; // pour tester, à supprimer
-
-            // Enregistrer la date de facturation
-            obtenirDateActuelle(&une_facture.date_fact);
-
-            // Initialiser la date de paiement de la facture
-            struct date date_paiement = {0, 0, 0};
-            une_facture.date_paiement = date_paiement;
-
-            // Sauvegarder la facture
-            tabfacture[nbfacture++] = une_facture;
-            a_sauvegarder_facture = 1;
-            printf(">>> Facture numéro %d générée pour la réservation numéro %d\n", une_facture.num_f, num_resa_a_facturer);
-        }
-    }
-}
-
-// Fonction pour afficher l'en-tête du tableau des factures
-void afficherEnTeteFactures()
-{
-    printf("%-6s %-6s %-10s %-10s %-9s %-9s\n", "NUM_F", "NUM_R", "TOTAL-€", "STATUT", "DATE_F", "DATE_P");
-}
-
-// Fonction pour afficher les factures
-void afficherFactures()
-{
-    if (nbfacture == 0)
-    {
-        printf(">>> Aucune facture à afficher\n");
-    }
-    else
-    {
-        char reponse[TAILLE_CHAR];
-        int i, debut = 0;
-
-        printf("<!> %d factures enregistrées dans la base\n", nbfacture);
-        printf("\n");
-        if (nbfacture > 10)
-        {
-            printf("Vous voulez afficher les 10 dernières factures ? (o/n) : ");
-            scanf(" %s", reponse);
-            viderBuffer();
-            convMaj(reponse);
-            if (reponse[0] == 'O')
-            {
-                debut = nbfacture - 10;
-            }
-        }
-
-        afficherEnTeteFactures();
-        for (i = debut; i < nbfacture; i++)
-        {
-            char date_facture[TAILLE_DATE];
-            char date_paiement_facture[TAILLE_DATE];
-            dateToString(tabfacture[i].date_fact, date_facture);
-            dateToString(tabfacture[i].date_paiement, date_paiement_facture);
-            printf("%-6d %-6d %-10.2f %-10s %-9s %-9s\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, statutFactureToString(tabfacture[i].statut), date_facture, date_paiement_facture);
-        }
-        printf("\n");
-    }
-}
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fonctions pour gerer les produits
@@ -1551,23 +1686,22 @@ void afficherProduits()
     }
     else
     {
-        char reponse[TAILLE_CHAR];
+        // char reponse[TAILLE_CHAR];
         int i, debut = 0;
 
         printf("<!> %d produits enregistrés dans la base\n", nbproduit);
-        printf("\n");
-        if (nbproduit > 10)
-        {
-            printf("Vous voulez afficher les 10 derniers produits ? (o/n) : ");
-            scanf(" %s", reponse);
-            viderBuffer();
-            convMaj(reponse);
-            if (reponse[0] == 'O')
-            {
-                debut = nbproduit - 10;
-            }
-        }
-
+        // printf("\n");
+        // if (nbproduit > 10)
+        // {
+        //     printf("Vous voulez afficher les 10 derniers produits ? (o/n) : ");
+        //     scanf(" %s", reponse);
+        //     viderBuffer();
+        //     convMaj(reponse);
+        //     if (reponse[0] == 'O')
+        //     {
+        //         debut = nbproduit - 10;
+        //     }
+        // }
         afficherEnTeteProduits();
         for (i = debut; i < nbproduit; i++)
         {
@@ -1843,11 +1977,10 @@ void supprimerProduit()
 // Fonction pour sauvegarder les produits dans la base de données
 void sauvegardeProduits()
 {
-    FILE *f1;
-    f1 = fopen(DB_PRODUITS, "w");
+    FILE *f1 = fopen(DB_PRODUITS, "wb");
     if (f1 == NULL)
     {
-        printf(">>> Erreur d'ouverture de la base de données\n");
+        printf(">>> Erreur d'ouverture de la base de données des produits\n");
         return;
     }
     for (int i = 0; i < nbproduit; i++) // boucle de sauvegarde
@@ -1863,16 +1996,16 @@ void sauvegardeProduits()
 void chargementProduits()
 {
     struct produit unproduit;
-    FILE *f1 = fopen(DB_PRODUITS, "r");
+    FILE *f1 = fopen(DB_PRODUITS, "rb");
     int ret;
 
     if (f1 == NULL)
     {
-        printf("Erreur d'ouverture de la base de données.\n");
+        printf("Erreur d'ouverture de la base de données des produits.\n");
         return;
     }
 
-    while ((ret = fscanf(f1, "%6d %40s %10f\n", &unproduit.code, unproduit.desc, &unproduit.prix)) == 3)
+    while ((ret = fscanf(f1, "%6d %39[^\n] %10f\n", &unproduit.code, unproduit.desc, &unproduit.prix)) == 3)
     {
         if (nbproduit < TAILLE_TAB)
         {
@@ -1890,11 +2023,11 @@ void chargementProduits()
     printf("%d produits chargés.\n", nbproduit);
 }
 
-// Fonction pour rechercher un produit par son code
+// Fonction pour rechercher un produit par son code, retourne l'index du produit dans le tableau des produits
 int lanceRechercheProduit(int code_produit_a_rechercher)
 {
     struct produit unproduit;
-    int i, code_produit_trouve = VAL_INI;
+    int i, idx_code_produit = VAL_INI;
 
     // boucle de recherche
     for (i = 0; i < nbproduit; i++)
@@ -1902,11 +2035,11 @@ int lanceRechercheProduit(int code_produit_a_rechercher)
         unproduit = tabproduit[i];
         if (unproduit.code == code_produit_a_rechercher)
         {
-            code_produit_trouve = i;
+            idx_code_produit = i;
             break;
         }
     }
-    return code_produit_trouve;
+    return idx_code_produit;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1959,6 +2092,14 @@ bool mailValide(char mail[])
             nbdot++;
     }
     if (nbat != 1 || nbdot == 0)
+        return false;
+    return true;
+}
+
+// Fonction pour vérifier si une code produit est valide
+bool codeProduitValide(int code)
+{
+    if (lanceRechercheProduit(code) == VAL_INI)
         return false;
     return true;
 }

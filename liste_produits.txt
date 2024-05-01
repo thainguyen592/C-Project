@@ -1,12 +1,12 @@
-101    Chambre standard                           99.90
-102    Chambre supérieure                        149.90
-103    Suite junior                              199.90
-201    Petit-déjeuner buffet                       9.90
-202    Déjeuner buffet                            17.90
-203    Dîner buffet                               29.50
-301    Bière                                       5.50
-302    Soft                                        5.50
-303    Vin en verre                               10.00
-304    Vin en bouteille                           25.00
-305    Café                                        2.50
-401    Service de nettoyage                       20.00
+101    CHAMBRE STANDARD                         99.90     
+102    CHAMBRE SUPERIEURE                       149.90    
+103    SUITE JUNIOR                             199.90    
+201    PETIT DEJEUNER BUFFET                    9.90      
+202    DEJEUNER BUFFET                          17.90     
+203    DINER BUFFET                             29.50     
+301    BIERE                                    5.50      
+302    SOFT                                     5.50      
+303    VIN EN VERRE                             10.00     
+304    VIN EN BOUTEILLE                         25.00     
+305    CAFE                                     2.50      
+401    SERVICE DE NETTOYAGE                     20.00     
