@@ -55,6 +55,7 @@ struct client // structure d'un client
     struct date date_nais;    // date de naissance
     char tel[TAILLE_TEL];     // numéro de téléphone
     char mail[TAILLE_MAIL];   // adresse mail
+    int total;                // total dépensé
 };
 
 struct reservation // structure d'une réservation
@@ -985,6 +986,9 @@ void saisirClient()
 
         // Initialiser le niveau de fidélité du client
         unclient.fidelite = 0;
+
+        // Initialiser le montant dépensé du client
+        unclient.total = 0;
 
         // Afficher les informations saisies
 
@@ -2584,6 +2588,21 @@ char *niveauFideliteToString(int nf)
         return "Inconnu";
     }
 }
+
+// Fonction pour mettre à jour le niveau de fidélité d'un client en fonction du montant total des factures
+int majNiveauFidelite(float total)
+{
+    if (total < 1000)
+        return 0;
+    if (total < 3000)
+        return 1;
+    if (total < 6000)
+        return 2;
+    if (total < 10000)
+        return 3;
+    return 4;
+}
+
 
 // Fonction pour convertir le statut de la facture en chaine de caractères
 char *statutFactureToString(int sf)
