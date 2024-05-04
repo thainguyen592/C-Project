@@ -1533,6 +1533,11 @@ void ajouterPC(int idx_resa)
     char reponse[TAILLE_CHAR];
     int code_pc, qte_pc;
     int i = nbpc;
+    if (lanceRechercheFactureParReservation(tabresa[idx_resa].num_r) != VAL_INI)
+    {
+        printf(">>> La réservation %d a déjà été facturé, aucune modification possible.\n", tabresa[idx_resa].num_r);
+        return;
+    }
     do
     {
         do
@@ -1582,6 +1587,12 @@ void modifierPC(int idx_resa)
 {
     int code_pc;
     int idx_pc = VAL_INI;
+
+    if (lanceRechercheFactureParReservation(tabresa[idx_resa].num_r) != VAL_INI)
+    {
+        printf(">>> La réservation %d a déjà été facturé, aucune modification possible.\n", tabresa[idx_resa].num_r);
+        return;
+    }
     do
     {
         printf("Entrez le code du produit à modifier : ");
@@ -1607,6 +1618,11 @@ void supprimerPC(int idx_resa)
 {
     int code_pc;
     int idx_pc = VAL_INI;
+    if (lanceRechercheFactureParReservation(tabresa[idx_resa].num_r) != VAL_INI)
+    {
+        printf(">>> La réservation %d a déjà été facturé, aucune modification possible.\n", tabresa[idx_resa].num_r);
+        return;
+    }
     do
     {
         printf("Entrez le code du produit à supprimer : ");
