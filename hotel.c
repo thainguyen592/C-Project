@@ -251,6 +251,7 @@ int main()
     chargementPC();                                // Charger les produits commandés depuis la base de données
     chargementFactures();                          // Charger les factures depuis la base de données
     num_facture = tabfacture[nbfacture - 1].num_f; // Récupérer le dernier numéro de facture
+    printf("\nBienvenue dans le système de gestion de l'hôtel\n\n");
     annee_dernier_resa = obtenirAnneeActuelle();   // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
@@ -305,6 +306,7 @@ void afficherMenuPrincipal()
 // Fonction pour afficher le menu de gestion des réservations
 void afficherMenuReservation()
 {
+    printf("\n");
     printf("****** Gérer les réservations ******\n\n");
     printf("-1- Afficher les réservation        \n");
     printf("-2- Rechercher une réservation      \n");
@@ -665,6 +667,8 @@ void modifierReservations()
             scanf("%d", &uneresa.nombre_pers);
             viderBuffer();
         } while (uneresa.nombre_pers <= 0 || uneresa.nombre_pers > 4);
+
+        afficherChambresDisponibles(uneresa.date_entree, uneresa.date_sortie);// Afficher les chambres disponibles pour la période saisie
 
         // Mise à jour de la chambre
         printf("Nouvelle chambre à réserver: ");

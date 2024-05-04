@@ -10,3 +10,5 @@
 304    VIN EN BOUTEILLE                         25.00     
 305    CAFE                                     2.50      
 401    SERVICE DE NETTOYAGE                     20.00     
+402    SESSION DE MASSAGE 1H                    90.00     
+403    SAUNA                                    30.00     

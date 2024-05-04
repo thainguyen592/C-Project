@@ -12,4 +12,4 @@
 12     1         2435.00   FONTAINE             NICOLAS              16081991 0666778899      nicolas.fontaine@gmail.com                       
 13     0         0.00      BOULANGER            ELISE                25041995 0677889900      elise.boulanger@gmail.com                        
 14     0         0.00      MOREL                JEAN                 15071970 0611223344      jean.morel@gmail.com                             
-15     0         0.00      ROCHE                CLAUDE               18101965 0688990011      claude.roche@gmail.com                           
+15     0         1416.50   ROCHE                CLAUDE               18101965 0688990011      claude.roche@gmail.com                           
