@@ -55,7 +55,7 @@ struct client // structure d'un client
     struct date date_nais;    // date de naissance
     char tel[TAILLE_TEL];     // numéro de téléphone
     char mail[TAILLE_MAIL];   // adresse mail
-    int total;                // total dépensé
+    float total;              // total dépensé par le client
 };
 
 struct reservation // structure d'une réservation
@@ -82,7 +82,7 @@ struct produit // structure d'un produit
 {
     int code;               // code produit
     char desc[TAILLE_DESC]; // description du produit
-    float prix;             // prix du produitÒ
+    float prix;             // prix du produit
 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -111,7 +111,14 @@ int num_client = 0;  // numéro de séquence de client
 int num_facture = 0; // numéro de séquence de facture
 int num_produit = 0; // numéro de séquence de produit
 
-int annee_system = 0; // année du système
+int annee_dernier_resa = 0; // année du système
+
+int listeChambre[50] = {
+    101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+    201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212,
+    301, 302, 303, 304, 305, 306, 307, 308, 309, 310,
+    401, 402, 403, 404, 405, 406, 407, 408, 409, 410,
+    501, 502, 503, 504, 505, 506, 507, 508}; // Liste des chambres
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclarations préliminaires des fonctions
@@ -175,7 +182,7 @@ void demanderCritereRechercheFacture();
 void rechercherFacture(struct facture facture_a_trouver);
 int lanceRechercheFacture(int num_facture_a_rechercher);
 int lanceRechercheFactureParReservation(int num_reservation_a_rechercher);
-void modifierFacture();
+void paiementFacture();
 void supprimerFacture();
 void sauvegardeFactures();
 void chargementFactures();
@@ -202,6 +209,7 @@ bool mailValide(char mail[]);
 void convMaj(char chaine[]);
 void verifSauvegarde();
 bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie);
+void afficherChambresDisponibles(struct date date_entree, struct date date_sortie);
 int codeProduitChambre(int chambre);
 bool bissextile(int annee);
 bool dateExiste(struct date d);
@@ -219,6 +227,7 @@ int genererCodeClient();
 int genererNumFacture();
 bool codeProduitValide(int code);
 char *niveauFideliteToString(int nf);
+int calculerFidelite(float total);
 char *statutFactureToString(int sf);
 void viderBuffer();
 void quitter();
@@ -240,7 +249,7 @@ int main()
     chargementPC();                                // Charger les produits commandés depuis la base de données
     chargementFactures();                          // Charger les factures depuis la base de données
     num_facture = tabfacture[nbfacture - 1].num_f; // Récupérer le dernier numéro de facture
-    annee_system = obtenirAnneeActuelle();         // Récupérer l'année du système
+    annee_dernier_resa = obtenirAnneeActuelle();         // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -363,6 +372,12 @@ void saisirReservations()
         printf("Numéro client: ");
         scanf("%d", &uneresa.num_c);
         viderBuffer();
+        lanceRechercheClient(uneresa.num_c);
+        if (lanceRechercheClient(uneresa.num_c) == VAL_INI)
+        {
+            printf(">>> Client non trouvé. Veuillez saisir un client valide ou créer un nouveau client.\n");
+            continue;
+        }
 
         // Saisir et vérifier la date d'entrée
         printf("Date d'entrée (jjmmyyyy): ");
@@ -392,6 +407,16 @@ void saisirReservations()
         printf("Nombre de personnes: ");
         scanf("%d", &uneresa.nombre_pers);
         viderBuffer();
+        while (uneresa.nombre_pers <= 0 || uneresa.nombre_pers > 4)
+        {
+            printf(">>> Nombre de personnes invalide. Veuillez saisir un nombre valide.\n");
+            printf("Nombre de personnes: ");
+            scanf("%d", &uneresa.nombre_pers);
+            viderBuffer();
+        }
+
+        // Afficher les chambres disponibles pour la période saisie
+        afficherChambresDisponibles(uneresa.date_entree, uneresa.date_sortie);
 
         // Saisir et vérifier le numéro de chambre
         printf("Chambre à réserver: ");
@@ -467,13 +492,11 @@ void demanderCritereRechercheReservations()
 {
     struct reservation recherche_resa = {0}; // Initialiser la structure de recherche
     int rechercher_choix = VAL_INI;
-
     if (nbresa == 0)
     {
         printf(">>> Aucune réservation à afficher\n");
         return;
     }
-
     while (rechercher_choix != 0)
     {
         printf("Choisir critère de recherche : \n");
@@ -634,9 +657,12 @@ void modifierReservations()
         } while (!dateExiste(new_sortie) || !dateSuperieure(new_sortie, new_entree));
 
         // Mise à jour nombre de personnes
-        printf("Nouveau nombre de personnes: ");
-        scanf("%d", &uneresa.nombre_pers);
-        viderBuffer();
+        do
+        {
+            printf("Nouveau nombre de personnes: ");
+            scanf("%d", &uneresa.nombre_pers);
+            viderBuffer();
+        } while (uneresa.nombre_pers <= 0 || uneresa.nombre_pers > 4);
 
         // Mise à jour de la chambre
         printf("Nouvelle chambre à réserver: ");
@@ -654,8 +680,8 @@ void modifierReservations()
         uneresa.date_entree = new_entree;
         uneresa.date_sortie = new_sortie;
         tabresa[trouve] = uneresa;
-        nettoyerPC(trouve);                 // Nettoyer les produits commandés générés automatiquement précédemment
-        genererPC(trouve);                  // Générer les produits commandés pour la réservation
+        nettoyerPC(trouve); // Nettoyer les produits commandés générés automatiquement précédemment
+        genererPC(trouve);  // Générer les produits commandés pour la réservation
         a_sauvegarder_reservation = 1;
         printf(">>> Réservation numéro %d modifiée\n", num_resa_a_modifier);
     }
@@ -780,7 +806,7 @@ void genererPC(int idx_resa)
     unepc.code = codeProduitChambre(tabresa[idx_resa].chambre);
     unepc.qte = nbjours;
 
-    tabpc[i++] = unepc;        // Sauvegarder les données saisies dans le tableau
+    tabpc[i++] = unepc;   // Sauvegarder les données saisies dans le tableau
     a_sauvegarder_pc = 1; // Activer le flag pour sauvegarder les données
 
     nbpc = i; // Mettre à jour le nombre des réservations
@@ -799,7 +825,8 @@ void nettoyerPC(int idx_resa)
                 tabpc[j] = tabpc[j + 1]; // Décaler les produits commandés
             }
             nbpc--; // Décrémenter le nombre de produits commandés
-            if (nbpc > 0) {
+            if (nbpc > 0)
+            {
                 tabpc[nbpc].num_r = 0;
                 tabpc[nbpc].code = 0;
                 tabpc[nbpc].qte = 0;
@@ -831,7 +858,7 @@ void afficherMenuClient()
 // Fonction pour afficher l'en-tête du tableau des clients
 void afficherEnTeteClients()
 {
-    printf("%-6s %-9s %-20s %-20s %-9s %-16s %-s\n", "CODE", "NIV_FI", "NOM", "PRENOM", "DATE_NAIS", "TEL", "MAIL");
+    printf("%-6s %-9s %-20s %-20s %-8s %-15s %-s\n", "CODE", "NIV_FI", "NOM", "PRENOM", "D_NAIS", "TEL", "MAIL");
 }
 
 // Fonction pour le menu Clients
@@ -903,7 +930,7 @@ void afficherClients()
         {
             char date_naissance[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_naissance);
-            printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-9s %-20s %-20s %-8s %-15s %-49s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_naissance, tabclient[i].tel, tabclient[i].mail);
         }
         printf("\n");
     }
@@ -1117,7 +1144,7 @@ void rechercherClient(struct client client_a_trouver)
         {
             char date_nais[TAILLE_DATE];
             dateToString(tabclient[i].date_nais, date_nais);
-            printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
+            printf("%-6d %-9s %-20s %-20s %-8s %-15s %-49s\n", tabclient[i].code, niveauFideliteToString(tabclient[i].fidelite), tabclient[i].nom, tabclient[i].prenom, date_nais, tabclient[i].tel, tabclient[i].mail);
             nbclient_trouve++;
         }
     }
@@ -1172,7 +1199,7 @@ void modifierClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-9s %-20s %-20s %-8s %-15s %-49s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // mise à jour des informations
         do
@@ -1201,14 +1228,16 @@ void modifierClient()
 
         do
         {
-            printf("Nouveau niveau de fidélité (0 à 4): ");
-            scanf("%d", &unclient.fidelite);
+            printf("Nouveau montant dépensé du client: ");
+            scanf("%f", &unclient.total);
             viderBuffer();
-            if (unclient.fidelite < 0 || unclient.fidelite > 4)
+            if (unclient.total < 0)
             {
-                printf("Niveau de fidélité invalide, veuillez saisir un niveau de fidélité valide (0 à 4).\n");
+                printf("Montant dépensé invalide.\n");
             }
-        } while (unclient.fidelite < 0 || unclient.fidelite > 4);
+        } while (unclient.total < 0);
+        // Mise à jour du niveau de fidélité
+        unclient.fidelite = calculerFidelite(unclient.total);
 
         do
         {
@@ -1275,7 +1304,7 @@ void supprimerClient()
         dateToString(unclient.date_nais, date_nais);
         printf("Client trouvé : \n");
         afficherEnTeteClients();
-        printf("%-6d %-9s %-20s %-20s %-9s %-16s %-s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
+        printf("%-6d %-9s %-20s %-20s %-8s %-15s %-49s\n", unclient.code, niveauFideliteToString(unclient.fidelite), unclient.nom, unclient.prenom, date_nais, unclient.tel, unclient.mail);
 
         // Demander confirmation pour supprimer le client
         char reponse[TAILLE_CHAR];
@@ -1311,7 +1340,7 @@ void sauvegardeClients()
     {
         char dateNais[TAILLE_DATE];
         dateToString(tabclient[i].date_nais, dateNais);
-        fprintf(f1, "%-6d %-9d %-20s %-20s %-9s %-16s %-s\n", tabclient[i].code, tabclient[i].fidelite, tabclient[i].nom, tabclient[i].prenom, dateNais, tabclient[i].tel, tabclient[i].mail);
+        fprintf(f1, "%-6d %-9d %-9.2f %-20s %-20s %-8s %-15s %-49s\n", tabclient[i].code, tabclient[i].fidelite, tabclient[i].total, tabclient[i].nom, tabclient[i].prenom, dateNais, tabclient[i].tel, tabclient[i].mail);
     }
 
     fclose(f1);
@@ -1332,7 +1361,7 @@ void chargementClients()
         return;
     }
 
-    while (fscanf(f1, "%6d %9d %19[^\n] %19[^\n] %9s %16s %s\n", &unclient.code, &unclient.fidelite, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail) == 7)
+    while (fscanf(f1, "%6d %9d %9f %19[^\n] %19[^\n] %8s %15s %49s\n", &unclient.code, &unclient.fidelite, &unclient.total, unclient.nom, unclient.prenom, dateNais, unclient.tel, unclient.mail) == 8)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateNais, &unclient.date_nais);
@@ -1491,10 +1520,10 @@ void rechercherPC(int idx_resa)
     else
     {
         printf("Produit trouvé : \n");
-        printf("%-6s %-40s %-6s %-10s -%10s\n", "CODE", "DESC", "QTE", "PRIX.U", "TOTAL");
+        printf("%-6s %-40s %-6s %-10s %-10s\n", "CODE", "DESC", "QTE", "PRIX.U", "TOTAL");
         int idx_p = lanceRechercheProduit(code_pc);
-        float total_pc = tabpc[idx_pc].qte * tabproduit[idx_pc].prix;
-        printf("%-6d %-40s %-6d %-10.2f %-10.2f\n", tabpc[idx_pc].num_r, tabproduit[idx_p].desc, tabpc[idx_pc].qte, tabproduit[idx_p].prix, total_pc);
+        float total_pc = tabpc[idx_pc].qte * tabproduit[idx_p].prix;
+        printf("%-6d %-40s %-6d %-10.2f %-10.2f\n", tabpc[idx_pc].code, tabproduit[idx_p].desc, tabpc[idx_pc].qte, tabproduit[idx_p].prix, total_pc);
     }
 }
 
@@ -1686,7 +1715,7 @@ void menuFacturation()
             facturerReservation();
             break;
         case 4:
-            modifierFacture();
+            paiementFacture();
             break;
         case 5:
             supprimerFacture();
@@ -1756,16 +1785,15 @@ void facturerReservation()
             // Générer un numéro de facture unique
             struct facture une_facture;
             une_facture.num_f = genererNumFacture();
-            ;
             une_facture.num_r = num_r;
             une_facture.total = total_facture;
-            obtenirDateActuelle(&une_facture.date_fact);
-            struct date date_paiement = {0, 0, 0};
+            obtenirDateActuelle(&une_facture.date_fact); // Date de facturation
+            struct date date_paiement = {0, 0, 0};       // Date de paiement
             une_facture.date_paiement = date_paiement;
             une_facture.statut = 0; // Statut de la facture : non payée
+            printf(">>> Facture numéro %d créée pour la réservation %d\n", une_facture.num_f, num_r);
             tabfacture[i++] = une_facture;
         }
-
         nbfacture = i; // Mettre à jour le nombre des factures
         a_sauvegarder_facture = 1;
     }
@@ -1833,8 +1861,7 @@ int lanceRechercheFactureParReservation(int num_reservation_a_rechercher)
 // Fonction pour demander les critères de recherche d'une facture
 void demanderCritereRechercheFacture()
 {
-    struct facture recherche_facture = {0, 0, 0, {0, 0, 0}, {0, 0, 0}, 0}; // Initialiser les critères de recherche
-
+    struct facture recherche_facture = {0}; // Initialiser les critères de recherche
     int critere_recherche = VAL_INI;
     if (nbfacture == 0)
     {
@@ -1867,6 +1894,7 @@ void demanderCritereRechercheFacture()
             printf("Entrez le numéro de la réservation : ");
             scanf("%d", &recherche_facture.num_r);
             viderBuffer();
+            rechercherFacture(recherche_facture);
             break;
         case 3:
             printf("Entrez le montant total de la facture : ");
@@ -1883,14 +1911,14 @@ void demanderCritereRechercheFacture()
         case 5:
             printf("Entrez la date de paiement (jjmmaaaa) : ");
             scanf("%2d%2d%4d", &recherche_facture.date_paiement.jour, &recherche_facture.date_paiement.mois, &recherche_facture.date_paiement.annee);
-            rechercherFacture(recherche_facture);
             viderBuffer();
+            rechercherFacture(recherche_facture);
             break;
         case 6:
             printf("Entrez le statut de la facture (0: non payée, 1: payée) : ");
             scanf("%d", &recherche_facture.statut);
-            rechercherFacture(recherche_facture);
             viderBuffer();
+            rechercherFacture(recherche_facture);
             break;
         case 0:
             break;
@@ -1947,10 +1975,10 @@ void rechercherFacture(struct facture facture_a_trouver)
 }
 
 // Fonction pour enregistrer la date de paiement d'une facture
-void modifierFacture()
+void paiementFacture()
 {
     int num_facture;
-    printf("Entrez le numéro de la facture à modifier : ");
+    printf("Entrez le numéro de la facture : ");
     scanf("%d", &num_facture);
     viderBuffer();
     int idx_facture = lanceRechercheFacture(num_facture);
@@ -1983,7 +2011,15 @@ void modifierFacture()
             scanf("%2d%2d%4d", &tabfacture[idx_facture].date_paiement.jour, &tabfacture[idx_facture].date_paiement.mois, &tabfacture[idx_facture].date_paiement.annee);
             viderBuffer();
             tabfacture[idx_facture].statut = 1; // Marquer la facture comme payée
+
+            // mettre à jour le niveau de fidelité du client
+            int idx_resa = lanceRecherche(tabfacture[idx_facture].num_r);
+            int idx_client = lanceRechercheClient(tabresa[idx_resa].num_c);
+            tabclient[idx_client].total += tabfacture[idx_facture].total; // Ajouter le montant de la facture au total du client
+            tabclient[idx_client].fidelite = calculerFidelite(tabclient[idx_client].total); // Calculer le niveau de fidélité du client
+
             a_sauvegarder_facture = 1;
+            a_sauvegarder_client = 1;
             printf(">>> Facture numéro %d encaissé\n", num_facture);
         }
     }
@@ -2068,8 +2104,10 @@ void chargementFactures()
         printf("Erreur d'ouverture de la base de données des factures.\n");
         return;
     }
-    while (fscanf(f1, "%9d %9d %f %9s %9s %9d\n", &unefacture.num_f, &unefacture.num_r, &unefacture.total, date_fact, date_paiement, &unefacture.statut) == 6)
+    while (fscanf(f1, "%9d %9d %9f %9s %9s %9d\n", &unefacture.num_f, &unefacture.num_r, &unefacture.total, date_fact, date_paiement, &unefacture.statut) == 6)
     {
+        stringToDate(date_fact, &unefacture.date_fact);
+        stringToDate(date_paiement, &unefacture.date_paiement);
         if (nbfacture < TAILLE_TAB)
         {
             tabfacture[nbfacture] = unefacture;
@@ -2590,19 +2628,18 @@ char *niveauFideliteToString(int nf)
 }
 
 // Fonction pour mettre à jour le niveau de fidélité d'un client en fonction du montant total des factures
-int majNiveauFidelite(float total)
+int calculerFidelite(float total)
 {
-    if (total < 1000)
+    if (total < 2000)
         return 0;
-    if (total < 3000)
+    if (total < 5000)
         return 1;
-    if (total < 6000)
-        return 2;
     if (total < 10000)
+        return 2;
+    if (total < 20000)
         return 3;
     return 4;
 }
-
 
 // Fonction pour convertir le statut de la facture en chaine de caractères
 char *statutFactureToString(int sf)
@@ -2635,14 +2672,45 @@ bool chambreDisponible(int chambre, struct date date_entree, struct date date_so
     return true; // Chambre disponible
 }
 
+// Fonction pour afficher les chambres disponibles pour une période donnée
+void afficherChambresDisponibles(struct date date_entree, struct date date_sortie)
+{
+    printf("Chambres disponibles pour la période du %02d/%02d/%04d au %02d/%02d/%04d\n", date_entree.jour, date_entree.mois, date_entree.annee, date_sortie.jour, date_sortie.mois, date_sortie.annee);
+    printf("Chambre Standard : ");
+    for (int i = 0; i < 32; i++)
+    {
+        if (chambreDisponible(listeChambre[i], date_entree, date_sortie))
+        {
+            printf("%d ", listeChambre[i]);
+        }
+    }
+    printf("\nChambre Familiales : ");
+    for (int i = 32; i < 42; i++)
+    {
+        if (chambreDisponible(listeChambre[i], date_entree, date_sortie))
+        {
+            printf("%d ", listeChambre[i]);
+        }
+    }
+    printf("\nSuites : ");
+    for (int i = 42; i < 50; i++)
+    {
+        if (chambreDisponible(listeChambre[i], date_entree, date_sortie))
+        {
+            printf("%d ", listeChambre[i]);
+        }
+    }
+    printf("\n");
+}
+
 // Fonction pour obtenir le code produit pour une chambre donnée
 int codeProduitChambre(int chambre)
 {
-    if (chambre >= 101 && chambre <= 110) // Chambre standard
+    if (chambre >= 101 && chambre <= 310) // Chambre standard
         return 101;
-    if (chambre >= 201 && chambre <= 210) // Chambre supérieure
+    if (chambre >= 401 && chambre <= 410) // Chambre supérieure
         return 102;
-    if (chambre >= 301 && chambre <= 310) // Suite junior
+    if (chambre >= 501 && chambre <= 508) // Suite junior
         return 103;
     return 0;
 }
@@ -2652,7 +2720,7 @@ void verifSauvegarde()
 {
     char reponse[TAILLE_CHAR];
 
-    if (a_sauvegarder_reservation || a_sauvegarder_client)
+    if (a_sauvegarder_reservation || a_sauvegarder_client || a_sauvegarder_produit || a_sauvegarder_pc || a_sauvegarder_facture)
     {
         printf("Des données ont été modifiées\n");
         printf("Voulez-vous faire une sauvegarde (o/n) : ");
@@ -2807,10 +2875,12 @@ void obtenirDateDuJour(char *dateStr)
 // Fonction pour générer un numéro de réservation unique au format "yyyyxxxx"
 int genererNumResa()
 {
+    // obtenir l'année de la dernière réservation
+    int annee_dernier_resa = num_resa / 10000; // extraire l'année de la dernière réservation
     int annee_actuel = obtenirAnneeActuelle();
-    if (annee_actuel != annee_system)
+    if (annee_actuel != annee_dernier_resa)
     {
-        annee_system = annee_actuel;
+        annee_dernier_resa = annee_actuel;
         num_resa = annee_actuel * 10000 + 1;
     }
     else

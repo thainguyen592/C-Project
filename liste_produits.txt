@@ -1,9 +1,9 @@
-101    CHAMBRE STANDARD                         99.90     
-102    CHAMBRE SUPERIEURE                       149.90    
-103    SUITE JUNIOR                             199.90    
-201    PETIT DEJEUNER BUFFET                    9.90      
-202    DEJEUNER BUFFET                          17.90     
-203    DINER BUFFET                             29.50     
+101    CHAMBRE STANDARD                         199.00    
+102    CHAMBRE SUPERIEURE                       299.00    
+103    SUITE JUNIOR                             499.00    
+201    PETIT DEJEUNER BUFFET                    25.00     
+202    DEJEUNER BUFFET                          35.00     
+203    DINER BUFFET                             45.00     
 301    BIERE                                    5.50      
 302    SOFT                                     5.50      
 303    VIN EN VERRE                             10.00     
