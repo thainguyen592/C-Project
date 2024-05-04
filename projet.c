@@ -206,6 +206,7 @@ void chargementProduits();
 bool nomValide(char nom[]);
 bool telValide(char tel[]);
 bool mailValide(char mail[]);
+bool chambreValide(int chambre);
 void convMaj(char chaine[]);
 void verifSauvegarde();
 bool chambreDisponible(int chambre, struct date date_entree, struct date date_sortie);
@@ -228,6 +229,7 @@ int genererNumFacture();
 bool codeProduitValide(int code);
 char *niveauFideliteToString(int nf);
 int calculerFidelite(float total);
+float appliquerFidelite(float total, int numero_client);
 char *statutFactureToString(int sf);
 void viderBuffer();
 void quitter();
@@ -249,7 +251,7 @@ int main()
     chargementPC();                                // Charger les produits commandés depuis la base de données
     chargementFactures();                          // Charger les factures depuis la base de données
     num_facture = tabfacture[nbfacture - 1].num_f; // Récupérer le dernier numéro de facture
-    annee_dernier_resa = obtenirAnneeActuelle();         // Récupérer l'année du système
+    annee_dernier_resa = obtenirAnneeActuelle();   // Récupérer l'année du système
     int main_choix = VAL_INI;
     while (main_choix != 0)
     {
@@ -422,7 +424,7 @@ void saisirReservations()
         printf("Chambre à réserver: ");
         scanf("%d", &uneresa.chambre);
         viderBuffer();
-        while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie))
+        while (!chambreDisponible(uneresa.chambre, uneresa.date_entree, uneresa.date_sortie) || !chambreValide(uneresa.chambre))
         {
             printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
             printf("Chambre à réserver: ");
@@ -490,7 +492,6 @@ void afficherReservations()
 // Fonction pour demander le critère de recherche au utilisateur pour les réservations
 void demanderCritereRechercheReservations()
 {
-    struct reservation recherche_resa = {0}; // Initialiser la structure de recherche
     int rechercher_choix = VAL_INI;
     if (nbresa == 0)
     {
@@ -509,6 +510,7 @@ void demanderCritereRechercheReservations()
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
         viderBuffer();
+        struct reservation recherche_resa = {0}; // Initialiser la structure de recherche
         switch (rechercher_choix)
         {
         case 1:
@@ -668,7 +670,7 @@ void modifierReservations()
         printf("Nouvelle chambre à réserver: ");
         scanf("%d", &uneresa.chambre);
         viderBuffer();
-        while (!chambreDisponible(uneresa.chambre, new_entree, new_sortie))
+        while (!chambreDisponible(uneresa.chambre, new_entree, new_sortie) || !chambreValide(uneresa.chambre))
         {
             printf(">>> Chambre non disponible pour cette période. Veuillez saisir une autre chambre.\n");
             printf("Nouvelle chambre à réserver: ");
@@ -1037,7 +1039,6 @@ void saisirClient()
 // Fonction pour demander le critère de recherche au utilisateur pour les clients
 void demanderCritereRechercheClients()
 {
-    struct client recherche_client = {0}; // Initialiser la structure de recherche
     int rechercher_choix = VAL_INI;
 
     if (nbclient == 0)
@@ -1060,6 +1061,7 @@ void demanderCritereRechercheClients()
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
         viderBuffer();
+        struct client recherche_client = {0};
         switch (rechercher_choix)
         {
         case 1:
@@ -1070,13 +1072,13 @@ void demanderCritereRechercheClients()
             break;
         case 2:
             printf("Nom à rechercher : ");
-            scanf("%s", recherche_client.nom);
+            scanf("%[^\n]", recherche_client.nom);
             viderBuffer();
             rechercherClient(recherche_client);
             break;
         case 3:
             printf("Prénom à rechercher : ");
-            scanf("%s", recherche_client.prenom);
+            scanf("%[^\n]", recherche_client.prenom);
             viderBuffer();
             rechercherClient(recherche_client);
             break;
@@ -1099,7 +1101,7 @@ void demanderCritereRechercheClients()
             rechercherClient(recherche_client);
             break;
         case 7:
-            printf("Niveau de fidelité à rechercher : ");
+            printf("Niveau de fidelité à rechercher (0 à 4): ");
             scanf("%d", &recherche_client.fidelite);
             viderBuffer();
             rechercherClient(recherche_client);
@@ -1788,6 +1790,7 @@ void facturerReservation()
                 total_facture += tabpc[i].qte * tabproduit[idx_p].prix;
             }
         }
+        total_facture = appliquerFidelite(total_facture, tabresa[idx_resa].num_c); // Appliquer la réduction de fidélité
         printf("Montant total de la facture : %.2f €\n", total_facture);
 
         // Demander confirmation pour facturer la réservation
@@ -1877,7 +1880,6 @@ int lanceRechercheFactureParReservation(int num_reservation_a_rechercher)
 // Fonction pour demander les critères de recherche d'une facture
 void demanderCritereRechercheFacture()
 {
-    struct facture recherche_facture = {0}; // Initialiser les critères de recherche
     int critere_recherche = VAL_INI;
     if (nbfacture == 0)
     {
@@ -1897,7 +1899,7 @@ void demanderCritereRechercheFacture()
         printf("Votre choix : ");
         scanf("%d", &critere_recherche);
         viderBuffer();
-        // Traitement des options
+        struct facture recherche_facture = {0}; // Initialiser les critères de recherche
         switch (critere_recherche)
         {
         case 1:
@@ -2031,7 +2033,7 @@ void paiementFacture()
             // mettre à jour le niveau de fidelité du client
             int idx_resa = lanceRecherche(tabfacture[idx_facture].num_r);
             int idx_client = lanceRechercheClient(tabresa[idx_resa].num_c);
-            tabclient[idx_client].total += tabfacture[idx_facture].total; // Ajouter le montant de la facture au total du client
+            tabclient[idx_client].total += tabfacture[idx_facture].total;                   // Ajouter le montant de la facture au total dépensé du client
             tabclient[idx_client].fidelite = calculerFidelite(tabclient[idx_client].total); // Calculer le niveau de fidélité du client
 
             a_sauvegarder_facture = 1;
@@ -2301,7 +2303,6 @@ void saisirProduit()
 // Fonction pour demander le critère de recherche au utilisateur pour les produits
 void demanderCritereRechercheProduits()
 {
-    struct produit recherche_produit = {0}; // Initialiser la structure de recherche
     int rechercher_choix = VAL_INI;
 
     if (nbproduit == 0)
@@ -2320,6 +2321,7 @@ void demanderCritereRechercheProduits()
         printf("Votre choix : ");
         scanf("%d", &rechercher_choix);
         viderBuffer();
+        struct produit recherche_produit = {0}; // Initialiser la structure de recherche
         switch (rechercher_choix)
         {
         case 1:
@@ -2623,6 +2625,17 @@ bool codeProduitValide(int code)
     return true;
 }
 
+// Fonction pour vérifier si une numéro de chambre est valide
+bool chambreValide(int chambre)
+{
+    for (int i = 0; i < 50; i++)
+    {
+        if (chambre == listeChambre[i])
+            return true;
+    }
+    return false;
+}
+
 // Fonction pour convertir le niveau de fidélité en chaine de caractères
 char *niveauFideliteToString(int nf)
 {
@@ -2657,6 +2670,33 @@ int calculerFidelite(float total)
     return 4;
 }
 
+// Fonction pour appliquer le rabais en fonction du niveau de fidélité
+float appliquerFidelite(float total, int numero_client)
+{
+    float rabais = 0;
+    int idx_client = lanceRechercheClient(numero_client);
+    if (tabclient[idx_client].fidelite == 1)
+    {
+        printf("Rabais de 5%% appliqué pour client BRONZE\n");
+        rabais = total * 0.05;
+    }
+    if (tabclient[idx_client].fidelite == 2)
+    {
+        printf("Rabais de 10%% appliqué pour client SILVER\n");
+        rabais = total * 0.1;
+    }
+    if (tabclient[idx_client].fidelite == 3)
+    {
+        printf("Rabais de 15%% appliqué pour client GOLD\n");
+        rabais = total * 0.15;
+    }
+    if (tabclient[idx_client].fidelite == 4)
+    {
+        printf("Rabais de 20%% appliqué pour client PLATINUM\n");
+        rabais = total * 0.2;
+    }
+    return (total - rabais);
+}
 // Fonction pour convertir le statut de la facture en chaine de caractères
 char *statutFactureToString(int sf)
 {

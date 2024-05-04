@@ -1,4 +1,4 @@
-1      1         2093.00   NGUYEN               THAI HUNG            11051992 0682279808      thaihungams@gmail.com                            
+1      1         2282.05   NGUYEN               THAI HUNG            11051992 0682279808      thaihungams@gmail.com                            
 2      0         597.00    TRAN                 HAN                  04081998 0612345678      hantran@gmail.com                                
 3      0         1615.50   MARTIN               PIERRE               01011990 0687654321      martin.pierre@gmail.com                          
 4      0         0.00      ROSE                 MARIE                02021991 0632568978      rose.marie@gmail.com                             
