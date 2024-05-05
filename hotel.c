@@ -759,7 +759,7 @@ void sauvegardeReservations()
         char date_out[TAILLE_DATE];
         dateToString(tabresa[i].date_entree, date_in);
         dateToString(tabresa[i].date_sortie, date_out);
-        fprintf(f1, "%-9d %-9s %-9s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
+        fprintf(f1, "%-9d %-8s %-8s %-9d %-9d %-9d\n", tabresa[i].num_r, date_in, date_out, tabresa[i].chambre, tabresa[i].nombre_pers, tabresa[i].num_c);
     }
     fclose(f1);
     a_sauvegarder_reservation = 0; // désactiver le flag pour sauvegarder les données
@@ -779,7 +779,7 @@ void chargementReservations()
         return;
     }
 
-    while (fscanf(f1, "%9d %9s %9s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c) == 6)
+    while (fscanf(f1, "%9d %8s %8s %9d %9d %9d", &uneresa.num_r, dateEntree, dateSortie, &uneresa.chambre, &uneresa.nombre_pers, &uneresa.num_c) == 6)
     {
         // Conversion des chaînes de caractères en structures de dates
         stringToDate(dateEntree, &uneresa.date_entree);
@@ -2107,7 +2107,7 @@ void sauvegardeFactures()
         char date_paiement[TAILLE_DATE];
         dateToString(tabfacture[i].date_fact, date_fact);
         dateToString(tabfacture[i].date_paiement, date_paiement);
-        fprintf(f1, "%-9d %-9d %-9.2f %-9s %-9s %-9d\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, date_fact, date_paiement, tabfacture[i].statut);
+        fprintf(f1, "%-9d %-9d %-9.2f %-8s %-8s %-9d\n", tabfacture[i].num_f, tabfacture[i].num_r, tabfacture[i].total, date_fact, date_paiement, tabfacture[i].statut);
     }
     fclose(f1);
     a_sauvegarder_facture = 0; // désactiver le flag pour sauvegarder les données
@@ -2126,7 +2126,7 @@ void chargementFactures()
         printf("Erreur d'ouverture de la base de données des factures.\n");
         return;
     }
-    while (fscanf(f1, "%9d %9d %9f %9s %9s %9d\n", &unefacture.num_f, &unefacture.num_r, &unefacture.total, date_fact, date_paiement, &unefacture.statut) == 6)
+    while (fscanf(f1, "%9d %9d %9f %8s %8s %9d\n", &unefacture.num_f, &unefacture.num_r, &unefacture.total, date_fact, date_paiement, &unefacture.statut) == 6)
     {
         stringToDate(date_fact, &unefacture.date_fact);
         stringToDate(date_paiement, &unefacture.date_paiement);
